@@ -19,6 +19,8 @@ type OnlineMerge struct {
 	DeployedMachineMap  []*Machine
 	FreeMachineList     []*Machine
 	FreeMachineMap      []*Machine
+
+	MoveCommands []*InstanceMoveCommand
 }
 
 func NewOnlineMerge(r *ResourceManagement) *OnlineMerge {
@@ -195,6 +197,13 @@ func (o *OnlineMerge) roundFirst() {
 			ghosts = append(ghosts, ghost)
 			ghostsDeploy = append(ghostsDeploy, currentMachine)
 
+			//纪录指令
+			o.MoveCommands = append(o.MoveCommands, &InstanceMoveCommand{
+				Round:      1,
+				InstanceId: instance.InstanceId,
+				MachineId:  targetMachine.MachineId,
+			})
+
 			moveSuccess++
 		} else {
 			//迁移到剩余机器
@@ -210,6 +219,13 @@ func (o *OnlineMerge) roundFirst() {
 					currentMachine.AddInstance(ghost)
 					ghosts = append(ghosts, ghost)
 					ghostsDeploy = append(ghostsDeploy, currentMachine)
+
+					//纪录指令
+					o.MoveCommands = append(o.MoveCommands, &InstanceMoveCommand{
+						Round:      1,
+						InstanceId: instance.InstanceId,
+						MachineId:  freeMachine.MachineId,
+					})
 
 					moved = true
 					moveTemp++
@@ -315,6 +331,13 @@ func (o *OnlineMerge) roundFirst() {
 				ghosts = append(ghosts, ghost)
 				ghostsDeploy = append(ghostsDeploy, currentMachine)
 
+				//纪录指令
+				o.MoveCommands = append(o.MoveCommands, &InstanceMoveCommand{
+					Round:      1,
+					InstanceId: instance.InstanceId,
+					MachineId:  deployMachine.MachineId,
+				})
+
 				moveOther++
 				moved = true
 				break
@@ -382,6 +405,13 @@ func (o *OnlineMerge) roundSecond() {
 			currentMachine.AddInstance(ghost)
 			ghosts = append(ghosts, ghost)
 			ghostsDeploy = append(ghostsDeploy, currentMachine)
+
+			//纪录指令
+			o.MoveCommands = append(o.MoveCommands, &InstanceMoveCommand{
+				Round:      2,
+				InstanceId: instance.InstanceId,
+				MachineId:  targetMachine.MachineId,
+			})
 
 			moveSuccess++
 		} else {
@@ -470,6 +500,13 @@ func (o *OnlineMerge) roundSecond() {
 				ghosts = append(ghosts, ghost)
 				ghostsDeploy = append(ghostsDeploy, currentMachine)
 
+				//纪录指令
+				o.MoveCommands = append(o.MoveCommands, &InstanceMoveCommand{
+					Round:      2,
+					InstanceId: instance.InstanceId,
+					MachineId:  deployMachine.MachineId,
+				})
+
 				moveOther++
 				moved = true
 				break
@@ -528,6 +565,13 @@ func (o *OnlineMerge) roundFinal() (err error) {
 			ghosts = append(ghosts, ghost)
 			ghostsDeploy = append(ghostsDeploy, currentMachine)
 
+			//纪录指令
+			o.MoveCommands = append(o.MoveCommands, &InstanceMoveCommand{
+				Round:      3,
+				InstanceId: instance.InstanceId,
+				MachineId:  targetMachine.MachineId,
+			})
+
 			moveSuccess++
 		} else {
 			//迁移尝试失败
@@ -550,12 +594,19 @@ func (o *OnlineMerge) roundFinal() (err error) {
 	return nil
 }
 
-func (o *OnlineMerge) Run() (err error) {
+func (o *OnlineMerge) Run() (moveCommands []*InstanceMoveCommand, err error) {
+	o.R.log("OnlineMerge.Run\n")
+
 	o.init()
 
 	o.roundFirst()
 
 	o.roundSecond()
 
-	return o.roundFinal()
+	err = o.roundFinal()
+	if err != nil {
+		return nil, err
+	}
+
+	return o.MoveCommands, nil
 }

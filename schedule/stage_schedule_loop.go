@@ -143,7 +143,11 @@ func (r *ResourceManagement) scheduleLoop() {
 		for ; ; loop++ {
 			if r.Dataset == "e" {
 				if totalLoop%1024 == 0 {
-					r.onlineMerge()
+					err := r.mergeOutput()
+					if err != nil {
+						r.log("scheduleLoop failed scale=%2d dead loop=%8d,totalLoop=%8d,%s\n",
+							scaleCount, deadLoop, totalLoop, err.Error())
+					}
 				}
 			}
 

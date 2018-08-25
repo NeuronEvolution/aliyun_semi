@@ -135,6 +135,11 @@ func (r *ResourceManagement) createJobs() {
 }
 
 func (r *ResourceManagement) Run() (err error) {
+	err = MakeDirIfNotExists(r.OutputDir + "/")
+	if err != nil {
+		return err
+	}
+
 	r.MachineList, r.MachineMap = r.createMachines()
 	r.InstanceList, r.InstanceMap = r.createInstances()
 	r.createJobs()
