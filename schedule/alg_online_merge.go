@@ -1,6 +1,8 @@
 package schedule
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type OnlineMerge struct {
 	R *ResourceManagement
@@ -12,7 +14,6 @@ type OnlineMerge struct {
 	MachineMap          []*Machine
 	InstanceList        []*Instance
 	InstanceMap         []*Instance
-	MaxInstanceId       int
 	DeployMap           []*Machine
 	DeployedMachineList []*Machine
 	DeployedMachineMap  []*Machine
@@ -109,6 +110,7 @@ func (o *OnlineMerge) swapMachine(m1 int, m2 int) {
 
 func (o *OnlineMerge) fixMachines() {
 	o.R.log("OnlineMerge.fixMachines start\n")
+
 	SortInstanceByTotalMaxLowWithInference(o.InstanceList, 32)
 
 	fixedMachines := make(map[int]int)
@@ -147,7 +149,7 @@ func (o *OnlineMerge) fixMachines() {
 func (o *OnlineMerge) roundFirst() {
 	o.R.log("OnlineMerge.roundFirst start\n")
 
-	SortInstanceByTotalMaxLowWithInference(o.InstanceList, 32)
+	//SortInstanceByTotalMaxLowWithInference(o.InstanceList, 32)
 
 	//迁移后留下的幽灵实例
 	ghosts := make([]*Instance, 0)
@@ -159,8 +161,9 @@ func (o *OnlineMerge) roundFirst() {
 	moveSuccess := 0
 	moveTemp := 0
 	moveRest := 0
+	moveFreezing := 0
 	for i, instance := range o.InstanceList {
-		if i > 0 && i%1000 == 0 {
+		if i > 0 && i%10000 == 0 {
 			o.R.log("OnlineMerge.roundFirst %d\n", i)
 		}
 
@@ -170,6 +173,12 @@ func (o *OnlineMerge) roundFirst() {
 		//已经部署，直接跳过
 		if currentMachine.MachineId == targetMachineId {
 			moveAlready++
+			continue
+		}
+
+		//当前已在剩余机器中，保持不动
+		if o.FreeMachineMap[currentMachine.MachineId] != nil {
+			moveFreezing++
 			continue
 		}
 
@@ -219,14 +228,16 @@ func (o *OnlineMerge) roundFirst() {
 		ghostsDeploy[i].RemoveInstance(ghost.InstanceId)
 	}
 
-	o.R.log("OnlineMerge.roundFirst end,machines=%d,deployed=%d,free=%d,moveAlready=%d,moveSuccess=%d,moveTemp=%d,moveRest=%d\n",
-		len(o.MachineList), len(o.DeployedMachineList), len(o.FreeMachineList), moveAlready, moveSuccess, moveTemp, moveRest)
+	o.R.log("OnlineMerge.roundFirst end,machines=%d,deployed=%d,free=%d,"+
+		"moveAlready=%d,moveSuccess=%d,moveTemp=%d，moveFreezing＝%d,moveRest=%d\n",
+		len(o.MachineList), len(o.DeployedMachineList), len(o.FreeMachineList),
+		moveAlready, moveSuccess, moveTemp, moveFreezing, moveRest)
 }
 
 func (o *OnlineMerge) roundSecond() {
 	o.R.log("OnlineMerge.roundSecond start\n")
 
-	SortInstanceByTotalMaxLowWithInference(o.InstanceList, 32)
+	//SortInstanceByTotalMaxLowWithInference(o.InstanceList, 32)
 
 	//迁移后留下的幽灵实例
 	ghosts := make([]*Instance, 0)
@@ -238,7 +249,7 @@ func (o *OnlineMerge) roundSecond() {
 	moveSuccess := 0
 	moveRest := 0
 	for i, instance := range o.InstanceList {
-		if i > 0 && i%1000 == 0 {
+		if i > 0 && i%10000 == 0 {
 			o.R.log("OnlineMerge.round2 %d\n", i)
 		}
 
@@ -301,8 +312,8 @@ func (o *OnlineMerge) roundSecond() {
 	moveOther := 0
 	moveRest = 0
 	for i, instance := range o.InstanceList {
-		if i > 0 && i%1000 == 0 {
-			o.R.log("OnlineMerge.round2 %d\n", i)
+		if i > 0 && i%10000 == 0 {
+			o.R.log("OnlineMerge.roundSecond %d\n", i)
 		}
 
 		currentMachine := o.DeployMap[instance.InstanceId]
@@ -391,8 +402,8 @@ func (o *OnlineMerge) roundFinal() (err error) {
 	moveSuccess := 0
 	moveRest := 0
 	for i, instance := range o.InstanceList {
-		if i > 0 && i%1000 == 0 {
-			o.R.log("OnlineMerge.round2 %d\n", i)
+		if i > 0 && i%10000 == 0 {
+			o.R.log("OnlineMerge.roundFinal %d\n", i)
 		}
 
 		currentMachine := o.DeployMap[instance.InstanceId]

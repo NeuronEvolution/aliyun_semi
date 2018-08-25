@@ -123,6 +123,8 @@ func (r *ResourceManagement) scheduleLoop() {
 		r.DeployedMachineCount = 8000
 	}
 
+	totalLoop := 0
+
 	for scaleCount := 0; ; scaleCount++ {
 		startCost := r.CalcTotalScore()
 		r.log("scheduleLoop scale=%2d start cost=%f\n", scaleCount, startCost)
@@ -137,6 +139,11 @@ func (r *ResourceManagement) scheduleLoop() {
 		deadLoop := 0
 		stop := false
 		for ; ; loop++ {
+			totalLoop++
+			if totalLoop%256 == 0 {
+				r.onlineMerge()
+			}
+
 			SortMachineByCpuCost(r.MachineList[:r.DeployedMachineCount])
 			machinesByCpu := r.randomMachines(r.MachineList[:r.DeployedMachineCount], 32, pTableBigSmall, pTableSmallBig)
 			ok := r.scheduleMachines(machinesByCpu, deadLoop)

@@ -155,9 +155,7 @@ func (r *ResourceManagement) Run() (err error) {
 		return err
 	}
 
-	r.onlineMerge()
-
-	//r.scheduleLoop()
+	r.scheduleLoop()
 
 	return nil
 }
