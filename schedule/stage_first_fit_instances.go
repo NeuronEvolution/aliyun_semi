@@ -39,10 +39,6 @@ func (r *ResourceManagement) firstFitInstances() (err error) {
 		}
 	}
 
-	for _, m := range r.MachineList[:r.DeployedMachineCount] {
-		m.beginOffline()
-	}
-
 	r.log("firstFitInstances deployedMachineCount=%d,score=%f\n", r.DeployedMachineCount, r.CalcTotalScore())
 
 	return nil

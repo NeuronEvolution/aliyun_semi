@@ -141,29 +141,32 @@ func (r *ResourceManagement) scheduleLoop() {
 		deadLoop := 0
 		stop := false
 		for ; ; loop++ {
-			if totalLoop%256 == 0 {
-				r.onlineMerge()
+			if r.Dataset == "e" {
+				if totalLoop%1024 == 0 {
+					r.onlineMerge()
+				}
 			}
+
 			totalLoop++
 
 			SortMachineByCpuCost(r.MachineList[:r.DeployedMachineCount])
 			machinesByCpu := r.randomMachines(r.MachineList[:r.DeployedMachineCount], 32, pTableBigSmall, pTableSmallBig)
 			ok := r.scheduleMachines(machinesByCpu, deadLoop)
 			if !ok {
-				r.log("scheduleLoop scale=%2d dead loop=%8d\n", scaleCount, deadLoop)
+				r.log("scheduleLoop scale=%2d dead loop=%8d,totalLoop=%8d\n", scaleCount, deadLoop, totalLoop)
 				deadLoop++
 				continue
 			}
 
 			deadLoop = 0
 			currentCost := r.CalcTotalScore()
-			r.log("scheduleLoop scale=%2d loop=%8d %d %f %f\n",
-				scaleCount, loop, r.DeployedMachineCount, startCost, currentCost)
+			r.log("scheduleLoop scale=%2d loop=%8d,totalLoop=%8d %d %f %f\n",
+				scaleCount, loop, totalLoop, r.DeployedMachineCount, startCost, currentCost)
 
 			now := time.Now()
 			if now.Sub(lastSaveTime).Seconds() > 60*30 {
-				r.log("scheduleLoop scale=%2d save loop=%8d %d %f %f\n",
-					scaleCount, loop, r.DeployedMachineCount, startCost, currentCost)
+				r.log("scheduleLoop scale=%2d save loop=%8d,totalLoop=%8d %d %f %f\n",
+					scaleCount, loop, totalLoop, r.DeployedMachineCount, startCost, currentCost)
 				err := r.mergeOutput()
 				if err != nil {
 					fmt.Printf("[%s]scheduleLoop save failed,%s\n",
@@ -174,12 +177,12 @@ func (r *ResourceManagement) scheduleLoop() {
 
 			_, err := os.Stat(r.OutputDir + "/" + "aliyun_stop")
 			if err == nil {
-				r.log("scheduleLoop scale=%2d loop=%8d aliyun_stop\n", scaleCount, loop)
+				r.log("scheduleLoop scale=%2d loop=%8d,totalLoop=%8d aliyun_stop\n", scaleCount, loop, totalLoop)
 				stop = true
 				break
 			}
 
-			if loop >= 128*int(math.Pow(1, float64(scaleCount))) {
+			if loop >= 128*int(math.Pow(1.414, float64(scaleCount))) {
 				machineCountAllocate := r.checkScale()
 				if machineCountAllocate > 0 {
 					r.DeployedMachineCount += machineCountAllocate
@@ -195,5 +198,5 @@ func (r *ResourceManagement) scheduleLoop() {
 		}
 	}
 
-	r.log("scheduleLoop end  %d %f\n", r.DeployedMachineCount, r.CalcTotalScore())
+	r.log("scheduleLoop end  deployMachineCount=%d,totalLoop=%8d %f\n", r.DeployedMachineCount, r.CalcTotalScore())
 }

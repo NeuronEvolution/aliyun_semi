@@ -23,17 +23,17 @@ type ResourceManagement struct {
 	//Status
 	Rand *rand.Rand
 
-	MaxJobInstanceId      int
-	MachineList           []*Machine
-	MachineMap            []*Machine
-	MaxMachineId          int
-	DeployedMachineCount  int
-	InstanceList          []*Instance
-	InstanceMap           []*Instance
-	MaxInstanceId         int
-	DeployMap             []*Machine
-	JobMap                []*Job
-	JobDeployedMachineMap []*Machine
+	MaxJobInstanceId     int
+	MachineList          []*Machine
+	MachineMap           []*Machine
+	MaxMachineId         int
+	DeployedMachineCount int
+	InstanceList         []*Instance
+	InstanceMap          []*Instance
+	MaxInstanceId        int
+	DeployMap            []*Machine
+	JobMap               []*Job
+	JobDeployMap         []*Machine
 }
 
 func NewResourceManagement(
@@ -143,11 +143,20 @@ func (r *ResourceManagement) Run() (err error) {
 		r.MaxMachineId, r.MaxInstanceId, r.MaxJobInstanceId)
 
 	r.DeployMap = make([]*Machine, r.MaxInstanceId+1)
-	r.JobDeployedMachineMap = make([]*Machine, r.MaxJobInstanceId+1)
+	r.JobDeployMap = make([]*Machine, r.MaxJobInstanceId+1)
 
-	err = r.firstFitInstances()
+	if r.Dataset == "e" {
+		err = r.initE()
+	} else {
+		err = r.firstFitInstances()
+	}
+
 	if err != nil {
 		return err
+	}
+
+	for _, m := range r.MachineList[:r.DeployedMachineCount] {
+		m.beginOffline()
 	}
 
 	err = r.firstFitJobs()
@@ -167,4 +176,15 @@ func (r *ResourceManagement) CalcTotalScore() float64 {
 	}
 
 	return score
+}
+
+func (r *ResourceManagement) initE() (err error) {
+	r.DeployedMachineCount = 8000
+	for _, config := range r.InstanceDeployConfigList {
+		m := r.MachineMap[config.MachineId]
+		m.AddInstance(r.InstanceMap[config.InstanceId])
+		r.DeployMap[config.InstanceId] = m
+	}
+
+	return nil
 }

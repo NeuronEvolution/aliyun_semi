@@ -4,7 +4,9 @@ type Instance struct {
 	ResourceManagement *ResourceManagement
 	InstanceId         int
 	Config             *AppResourcesConfig
-	IsGhost            bool
+
+	IsGhost bool
+	Fixed   bool
 }
 
 func NewInstance(r *ResourceManagement, instanceId int, config *AppResourcesConfig) *Instance {

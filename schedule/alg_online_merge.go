@@ -239,7 +239,7 @@ func (o *OnlineMerge) roundFirst() {
 			//排除掉在临时机器中的实例
 			currentMachine := o.DeployMap[instanceId]
 			if o.FreeMachineMap[currentMachine.MachineId] != nil {
-				continue
+				//continue#注释掉这里限制下轮的移动，避免第一轮过度移动
 			}
 
 			nextMachineMap[machineId].AddInstance(o.InstanceMap[instanceId])
