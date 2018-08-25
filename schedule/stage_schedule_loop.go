@@ -115,7 +115,11 @@ func (r *ResourceManagement) checkScale() (machineCountAllocate int) {
 		}
 	}
 
-	return (h1-h2)/400 + (h2-h3)/40 + h3/20
+	count := (h1-h2)/200 + (h2-h3)/20 + h3/10
+
+	r.log("checkScale h1=%4d,h2=%4d,h3=%4d,count=%4d\n", h1, h2, h3, count)
+
+	return count
 }
 
 func (r *ResourceManagement) scheduleLoop() {
@@ -123,26 +127,24 @@ func (r *ResourceManagement) scheduleLoop() {
 		r.DeployedMachineCount = 8000
 	}
 
+	startCost := r.CalcTotalScore()
+
+	lastSaveTime := time.Date(2000, 1, 1, 0, 0, 0, 0, time.Local)
 	totalLoop := 0
-
 	for scaleCount := 0; ; scaleCount++ {
-		startCost := r.CalcTotalScore()
-		r.log("scheduleLoop scale=%2d start cost=%f\n", scaleCount, startCost)
-
-		lastSaveTime := time.Date(2000, 1, 1, 0, 0, 0, 0, time.Local)
+		r.log("scheduleLoop scale=%2d start cost=%f\n", scaleCount, r.CalcTotalScore())
 
 		pTableBigSmall := randBigSmall(r.DeployedMachineCount)
 		pTableSmallBig := randSmallBig(r.DeployedMachineCount)
 
-		currentCost := startCost
 		loop := 0
 		deadLoop := 0
 		stop := false
 		for ; ; loop++ {
-			totalLoop++
 			if totalLoop%256 == 0 {
 				r.onlineMerge()
 			}
+			totalLoop++
 
 			SortMachineByCpuCost(r.MachineList[:r.DeployedMachineCount])
 			machinesByCpu := r.randomMachines(r.MachineList[:r.DeployedMachineCount], 32, pTableBigSmall, pTableSmallBig)
@@ -154,7 +156,7 @@ func (r *ResourceManagement) scheduleLoop() {
 			}
 
 			deadLoop = 0
-			currentCost = r.CalcTotalScore()
+			currentCost := r.CalcTotalScore()
 			r.log("scheduleLoop scale=%2d loop=%8d %d %f %f\n",
 				scaleCount, loop, r.DeployedMachineCount, startCost, currentCost)
 
@@ -177,16 +179,15 @@ func (r *ResourceManagement) scheduleLoop() {
 				break
 			}
 
-			if loop == 128*int(math.Pow(1.414, float64(scaleCount))) {
+			if loop >= 128*int(math.Pow(1, float64(scaleCount))) {
 				machineCountAllocate := r.checkScale()
 				if machineCountAllocate > 0 {
-					r.log("scheduleLoop scale=%2d machineCountAllocate %d\n", scaleCount, machineCountAllocate)
 					r.DeployedMachineCount += machineCountAllocate
 					if r.DeployedMachineCount > len(r.MachineList) {
 						r.DeployedMachineCount = len(r.MachineList)
 					}
-					break
 				}
+				break
 			}
 		}
 		if stop {

@@ -149,7 +149,7 @@ func (o *OnlineMerge) fixMachines() {
 func (o *OnlineMerge) roundFirst() {
 	o.R.log("OnlineMerge.roundFirst start\n")
 
-	//SortInstanceByTotalMaxLowWithInference(o.InstanceList, 32)
+	SortInstanceByTotalMaxLowWithInference(o.InstanceList, 32)
 
 	//迁移后留下的幽灵实例
 	ghosts := make([]*Instance, 0)
@@ -164,7 +164,7 @@ func (o *OnlineMerge) roundFirst() {
 	moveFreezing := 0
 	for i, instance := range o.InstanceList {
 		if i > 0 && i%10000 == 0 {
-			o.R.log("OnlineMerge.roundFirst %d\n", i)
+			o.R.log("OnlineMerge.roundFirst 1 %d\n", i)
 		}
 
 		currentMachine := o.DeployMap[instance.InstanceId]
@@ -176,7 +176,7 @@ func (o *OnlineMerge) roundFirst() {
 			continue
 		}
 
-		//当前已在剩余机器中，保持不动
+		//当前已在临时机器中，保持不动
 		if o.FreeMachineMap[currentMachine.MachineId] != nil {
 			moveFreezing++
 			continue
@@ -217,7 +217,109 @@ func (o *OnlineMerge) roundFirst() {
 				}
 			}
 			if !moved { //todo
-				//尝试将大实例的目标机器迁移开，下一轮迁入
+				moveRest++
+			}
+		}
+	}
+
+	o.R.log("OnlineMerge.roundFirst 1,machines=%d,deployed=%d,free=%d,"+
+		"moveAlready=%d,moveSuccess=%d,moveTemp=%d，moveFreezing＝%d,moveRest=%d\n",
+		len(o.MachineList), len(o.DeployedMachineList), len(o.FreeMachineList),
+		moveAlready, moveSuccess, moveTemp, moveFreezing, moveRest)
+
+	//根据第二轮状态尝试将影响下轮回放的实例移开
+	nextMachineMap := make([]*Machine, o.R.MaxMachineId+1)
+	for i, m := range o.MachineMap {
+		if m != nil {
+			nextMachineMap[i] = NewMachine(m.R, m.MachineId, m.Config)
+		}
+	}
+	for instanceId, machineId := range o.FinalDeployMap {
+		if machineId > 0 {
+			//排除掉在临时机器中的实例
+			currentMachine := o.DeployMap[instanceId]
+			if o.FreeMachineMap[currentMachine.MachineId] != nil {
+				continue
+			}
+
+			nextMachineMap[machineId].AddInstance(o.InstanceMap[instanceId])
+		}
+	}
+
+	moveAlready = 0
+	moveFreezing = 0
+	moveKeep := 0
+	moveOther := 0
+	moveRest = 0
+	lastFitPos := 0
+	for i, instance := range o.InstanceList {
+		if i > 0 && i%10000 == 0 {
+			o.R.log("OnlineMerge.roundFirst 2 %d\n", i)
+		}
+
+		currentMachine := o.DeployMap[instance.InstanceId]
+		targetMachineId := o.FinalDeployMap[instance.InstanceId]
+
+		//已经部署，直接跳过
+		if currentMachine.MachineId == targetMachineId {
+			moveAlready++
+			continue
+		}
+
+		//在临时机器中，本轮不移动
+		if o.FreeMachineMap[currentMachine.MachineId] != nil {
+			moveFreezing++
+			continue
+		}
+
+		//若不可保持位置，迁移走
+		nextCurrentMachine := nextMachineMap[currentMachine.MachineId]
+		if nextCurrentMachine.ConstraintCheck(instance, 1) {
+			//可以保持位置
+			nextCurrentMachine.AddInstance(instance)
+			moveKeep++
+		} else {
+			//迁移走
+			moved := false
+			for fitOffset := 1; fitOffset <= len(o.DeployedMachineList); fitOffset++ {
+				pos := lastFitPos + fitOffset
+				if pos == len(o.DeployedMachineList) {
+					pos = 0
+				}
+
+				deployMachine := o.DeployedMachineList[pos]
+				if deployMachine == currentMachine {
+					continue
+				}
+
+				if !deployMachine.ConstraintCheck(instance, 1) {
+					continue
+				}
+
+				nextDeployMachine := nextMachineMap[deployMachine.MachineId]
+				if !nextDeployMachine.ConstraintCheck(instance, 1) {
+					continue
+				}
+
+				//迁移实例
+				currentMachine.RemoveInstance(instance.InstanceId)
+				deployMachine.AddInstance(instance)
+				o.DeployMap[instance.InstanceId] = deployMachine
+
+				//更新最终状态
+				nextDeployMachine.AddInstance(instance)
+
+				//留下幽灵
+				ghost := instance.CreateGhost()
+				currentMachine.AddInstance(ghost)
+				ghosts = append(ghosts, ghost)
+				ghostsDeploy = append(ghostsDeploy, currentMachine)
+
+				moveOther++
+				moved = true
+				break
+			}
+			if !moved {
 				moveRest++
 			}
 		}
@@ -228,16 +330,16 @@ func (o *OnlineMerge) roundFirst() {
 		ghostsDeploy[i].RemoveInstance(ghost.InstanceId)
 	}
 
-	o.R.log("OnlineMerge.roundFirst end,machines=%d,deployed=%d,free=%d,"+
-		"moveAlready=%d,moveSuccess=%d,moveTemp=%d，moveFreezing＝%d,moveRest=%d\n",
+	o.R.log("OnlineMerge.roundFirst 2,machines=%d,deployed=%d,free=%d,"+
+		"moveAlready=%d,moveSuccess=%d,moveTemp=%d，moveFreezing＝%d,moveKeep=%d,moveOther=%d,moveRest=%d\n",
 		len(o.MachineList), len(o.DeployedMachineList), len(o.FreeMachineList),
-		moveAlready, moveSuccess, moveTemp, moveFreezing, moveRest)
+		moveAlready, moveSuccess, moveTemp, moveFreezing, moveKeep, moveOther, moveRest)
 }
 
 func (o *OnlineMerge) roundSecond() {
 	o.R.log("OnlineMerge.roundSecond start\n")
 
-	//SortInstanceByTotalMaxLowWithInference(o.InstanceList, 32)
+	SortInstanceByTotalMaxLowWithInference(o.InstanceList, 32)
 
 	//迁移后留下的幽灵实例
 	ghosts := make([]*Instance, 0)
@@ -250,7 +352,7 @@ func (o *OnlineMerge) roundSecond() {
 	moveRest := 0
 	for i, instance := range o.InstanceList {
 		if i > 0 && i%10000 == 0 {
-			o.R.log("OnlineMerge.round2 %d\n", i)
+			o.R.log("OnlineMerge.roundSecond 1 %d\n", i)
 		}
 
 		currentMachine := o.DeployMap[instance.InstanceId]
@@ -293,7 +395,7 @@ func (o *OnlineMerge) roundSecond() {
 		len(o.MachineList), len(o.DeployedMachineList), len(o.FreeMachineList),
 		moveAlready, moveSuccess, moveFreezing, moveRest)
 
-	//再根据最终状态将必须迁移走的实例移开
+	//根据最终状态将必须迁移走的实例移开
 	finalMachineMap := make([]*Machine, o.R.MaxMachineId+1)
 	for i, m := range o.MachineMap {
 		if m != nil {
@@ -313,7 +415,7 @@ func (o *OnlineMerge) roundSecond() {
 	moveRest = 0
 	for i, instance := range o.InstanceList {
 		if i > 0 && i%10000 == 0 {
-			o.R.log("OnlineMerge.roundSecond %d\n", i)
+			o.R.log("OnlineMerge.roundSecond 2 %d\n", i)
 		}
 
 		currentMachine := o.DeployMap[instance.InstanceId]
@@ -388,8 +490,6 @@ func (o *OnlineMerge) roundSecond() {
 		len(o.MachineList), len(o.DeployedMachineList), len(o.FreeMachineList),
 		moveAlready, moveFreezing, moveKeep, moveOther, moveRest)
 }
-
-//moveAlready=36448,moveSuccess=14790,moveRest=16986
 
 func (o *OnlineMerge) roundFinal() (err error) {
 	o.R.log("OnlineMerge.roundFinal start\n")
