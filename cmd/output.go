@@ -12,8 +12,10 @@ import (
 func outputSummary(buf *bytes.Buffer, dataset string) {
 	buf.WriteString(dataset + "\n")
 	summary, err := ioutil.ReadFile("./_output/" + dataset + "/best_summary.csv")
-	if err != nil {
+	if err == nil {
 		buf.WriteString(string(summary))
+	} else {
+		fmt.Println("outputSummary failed", dataset, err)
 	}
 	buf.WriteString("\n")
 }
