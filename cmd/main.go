@@ -28,16 +28,6 @@ func run(appResourcesConfigMap []*schedule.AppResourcesConfig, appInferenceConfi
 		return
 	}
 
-	trees := 0
-	for _, v := range jobConfigDag {
-		if len(v.Children) > 0 {
-			trees++
-		}
-	}
-
-	fmt.Printf("[%s]instances %d\n", data, len(instanceDeployConfigList))
-	fmt.Printf("[%s]jobs %d,root jobs %d,trees %d\n", data, len(jobConfigMap), len(jobConfigDag), trees)
-
 	r := schedule.NewResourceManagement(
 		appResourcesConfigMap,
 		appInferenceConfigMap,
@@ -59,10 +49,10 @@ func main() {
 		return
 	}
 
-	//go run(appResourceConfigMap, appInferenceConfigMap, "a")
-	//go run(appResourceConfigMap, appInferenceConfigMap, "b")
-	//go run(appResourceConfigMap, appInferenceConfigMap, "c")
-	//go run(appResourceConfigMap, appInferenceConfigMap, "d")
+	go run(appResourceConfigMap, appInferenceConfigMap, "a")
+	go run(appResourceConfigMap, appInferenceConfigMap, "b")
+	go run(appResourceConfigMap, appInferenceConfigMap, "c")
+	go run(appResourceConfigMap, appInferenceConfigMap, "d")
 	go run(appResourceConfigMap, appInferenceConfigMap, "e")
 
 	for {

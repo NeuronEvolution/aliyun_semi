@@ -1,7 +1,6 @@
 package schedule
 
 import (
-	"fmt"
 	"math/rand"
 	"sort"
 )
@@ -97,6 +96,8 @@ func (r *ResourceManagement) createMachines() (machineList []*Machine, machineMa
 }
 
 func (r *ResourceManagement) createInstances() (instanceList []*Instance, instanceMap []*Instance) {
+	r.log("createInstances\n")
+
 	instanceMap = make([]*Instance, r.MaxInstanceId+1)
 	for _, config := range r.InstanceDeployConfigList {
 		if config == nil {
@@ -112,26 +113,37 @@ func (r *ResourceManagement) createInstances() (instanceList []*Instance, instan
 }
 
 func (r *ResourceManagement) createJobs() {
-	r.MaxJobInstanceId = 0
-	for _, config := range r.JobConfigMap {
-		if config != nil {
-			r.MaxJobInstanceId += config.InstanceCount
-		}
-	}
-
-	r.JobMap = make([]*Job, r.MaxJobInstanceId+1)
+	r.log("createJobs\n")
+	r.JobMap = make([]*Job, 0)
+	r.JobMap = append(r.JobMap, nil)
 	currentJobInstanceId := 0
+	//打包创建实例
 	for _, config := range r.JobConfigMap {
 		if config == nil {
 			continue
 		}
 
-		for i := 0; i < config.InstanceCount; i++ {
+		rest := config.InstanceCount
+		packCount := config.getPackCount()
+		for {
+			count := packCount
+			if rest < packCount {
+				count = rest
+			}
+
 			currentJobInstanceId++
-			job := NewJob(r, currentJobInstanceId, config)
-			r.JobMap[job.JobInstanceId] = job
+			job := NewJob(r, currentJobInstanceId, config, count)
+			r.JobMap = append(r.JobMap, job)
+			r.MaxJobInstanceId = currentJobInstanceId
+
+			rest -= packCount
+			if rest <= 0 {
+				break
+			}
 		}
 	}
+
+	r.log("createJobs MaxJobInstanceId=%d\n", r.MaxJobInstanceId)
 }
 
 func (r *ResourceManagement) Run() (err error) {
@@ -140,35 +152,40 @@ func (r *ResourceManagement) Run() (err error) {
 		return err
 	}
 
+	//创建实例和任务
+	r.DeployMap = make([]*Machine, r.MaxInstanceId+1)
+	r.JobDeployMap = make([]*Machine, r.MaxJobInstanceId+1)
 	r.MachineList, r.MachineMap = r.createMachines()
 	r.InstanceList, r.InstanceMap = r.createInstances()
 	r.createJobs()
 
-	fmt.Printf("maxMachineId=%d,maxInstanceId=%d,maxJobInstanceId=%d\n",
-		r.MaxMachineId, r.MaxInstanceId, r.MaxJobInstanceId)
+	return
 
-	r.DeployMap = make([]*Machine, r.MaxInstanceId+1)
-	r.JobDeployMap = make([]*Machine, r.MaxJobInstanceId+1)
+	//数据简单分析
+	r.analysis()
 
+	//初始化部署实例
 	if r.Dataset == "e" {
 		err = r.initE()
 	} else {
 		err = r.firstFitInstances()
 	}
-
 	if err != nil {
 		return err
 	}
 
+	//将计算点从实例的98点提升到98*15点
 	for _, m := range r.MachineList[:r.DeployedMachineCount] {
 		m.beginOffline()
 	}
 
+	//初始化部署任务
 	err = r.firstFitJobs()
 	if err != nil {
 		return err
 	}
 
+	//优化迭代
 	r.scheduleLoop()
 
 	return nil

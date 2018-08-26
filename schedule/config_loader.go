@@ -385,6 +385,7 @@ func LoadJobDAG(file string) (jobConfigMap []*JobConfig, jobConfigDAG []*JobConf
 	}
 
 	//构造DAG
+	jobConfigDAG = make([]*JobConfig, 0)
 	for _, v := range jobConfigMap {
 		if v == nil || len(v.PreJobs) == 0 {
 			continue
@@ -396,7 +397,6 @@ func LoadJobDAG(file string) (jobConfigMap []*JobConfig, jobConfigDAG []*JobConf
 			v.Parents = append(v.Parents, parent)
 		}
 	}
-
 	for _, v := range jobConfigMap {
 		if v != nil && len(v.Parents) == 0 {
 			jobConfigDAG = append(jobConfigDAG, v)

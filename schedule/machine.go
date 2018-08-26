@@ -90,8 +90,8 @@ func (m *Machine) AddJob(job *Job) {
 	m.JobList[m.JobListCount] = job
 	m.JobListCount++
 	for i := 0; i < 15; i++ {
-		m.Cpu[job.StartMinutes+i] += job.Config.Cpu
-		m.Mem[job.StartMinutes+i] += job.Config.Mem
+		m.Cpu[job.StartMinutes+i] += job.Cpu
+		m.Mem[job.StartMinutes+i] += job.Mem
 	}
 	m.cpuCostValid = false
 }
@@ -109,8 +109,8 @@ func (m *Machine) RemoveJob(jobInstanceId int) {
 			}
 			m.JobListCount--
 			for i := 0; i < 15; i++ {
-				m.Cpu[job.StartMinutes+i] -= job.Config.Cpu
-				m.Mem[job.StartMinutes+i] -= job.Config.Mem
+				m.Cpu[job.StartMinutes+i] -= job.Cpu
+				m.Mem[job.StartMinutes+i] -= job.Mem
 			}
 			m.cpuCostValid = false
 			break
