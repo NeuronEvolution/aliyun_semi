@@ -61,6 +61,6 @@ func main() {
 			fmt.Println("output failed", err.Error())
 		}
 
-		time.Sleep(time.Second * 30)
+		time.Sleep(time.Minute * 30)
 	}
 }

@@ -256,10 +256,14 @@ func (m *Machine) DebugPrint() {
 
 func (m *Machine) CanFirstFitJob(job *Job, startTimeMin int, startTimeMax int) (ok bool, startMinutes int) {
 	//debugLog("checkMachineAddJob %d,%d,%d\n", m.MachineId, job.JobInstanceId, job.Config.ExecMinutes)
+	cpuRatio := float64(1)
+	if m.InstanceListCount > 0 {
+		cpuRatio = 0.5
+	}
 	for i := startTimeMin; i <= startTimeMax; i++ {
 		failed := false
 		for j := i; j < i+job.Config.ExecMinutes; j++ {
-			if m.Cpu[j]+job.Cpu > m.Config.Cpu || m.Mem[j]+job.Mem > m.Config.Mem {
+			if m.Cpu[j]+job.Cpu > m.Config.Cpu*cpuRatio || m.Mem[j]+job.Mem > m.Config.Mem {
 				failed = true
 				i = j
 				break
