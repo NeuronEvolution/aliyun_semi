@@ -70,6 +70,13 @@ func (r *ResourceManagement) output(instanceMoveCommands []*InstanceMoveCommand,
 func (r *ResourceManagement) mergeOutput() (err error) {
 	r.log("mergeOutput start\n")
 
+	r.beginOffline()
+
+	err = r.firstFitJobs()
+	if err != nil {
+		return err
+	}
+
 	instanceMoveCommands, err := NewOnlineMerge(r).Run()
 	if err != nil {
 		return err

@@ -167,8 +167,6 @@ func (m *Machine) HasBadConstraint() bool {
 }
 
 func (m *Machine) GetCpuCostReal() float64 {
-	m.beginOffline()
-
 	totalCost := float64(0)
 	for i := 0; i < TimeSampleCount*15; i++ {
 		r := m.Cpu[i] / m.Config.Cpu
@@ -191,7 +189,6 @@ func (m *Machine) GetCpuCost() float64 {
 	if m.JobListCount == 0 {
 		m.cpuCost = m.Resource.GetCpuCost(m.Config.Cpu, m.InstanceListCount)
 	} else {
-		m.beginOffline()
 		totalCost := float64(0)
 		for i := 0; i < TimeSampleCount*15; i++ {
 			r := m.Cpu[i] / m.Config.Cpu
@@ -248,7 +245,7 @@ func (m *Machine) debugValidation() {
 
 func (m *Machine) DebugPrint() {
 	fmt.Printf("Machine.DebugPrint %d %v cost=%f linearCost=%f\n",
-		m.MachineId, m.Config, m.GetCpuCostReal(), m.GetLinearCpuCost(m.Config.Cpu))
+		m.MachineId, m.Config, m.GetCpuCost(), m.GetLinearCpuCost(m.Config.Cpu))
 	for i := 0; i < m.appCountCollection.ListCount; i++ {
 		fmt.Printf("    %v,", m.appCountCollection.List[i])
 		m.R.AppResourcesConfigMap[m.appCountCollection.List[i].AppId].DebugPrint()

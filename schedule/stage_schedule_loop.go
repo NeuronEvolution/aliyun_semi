@@ -1,7 +1,6 @@
 package schedule
 
 import (
-	"fmt"
 	"math"
 	"os"
 	"sync"
@@ -141,15 +140,25 @@ func (r *ResourceManagement) scheduleLoop() {
 		deadLoop := 0
 		stop := false
 		for ; ; loop++ {
-			//if r.Dataset == "e" {//todo
-			if totalLoop%1024 == 0 {
-				err := r.mergeOutput()
-				if err != nil {
-					r.log("scheduleLoop failed scale=%2d dead loop=%8d,totalLoop=%8d,%s\n",
-						scaleCount, deadLoop, totalLoop, err.Error())
+			if r.Dataset == "e" {
+				if totalLoop%128 == 0 {
+					err := r.mergeOutput()
+					if err != nil {
+						r.log("scheduleLoop failed scale=%2d dead loop=%8d,totalLoop=%8d,%s\n",
+							scaleCount, deadLoop, totalLoop, err.Error())
+					}
+				}
+			} else {
+				if totalLoop > 0 && totalLoop%128 == 0 {
+					err := r.mergeOutput()
+					if err != nil {
+						r.log("scheduleLoop failed scale=%2d dead loop=%8d,totalLoop=%8d,%s\n",
+							scaleCount, deadLoop, totalLoop, err.Error())
+					}
+					stop = true
+					break
 				}
 			}
-			//}
 
 			totalLoop++
 
@@ -171,11 +180,11 @@ func (r *ResourceManagement) scheduleLoop() {
 			if now.Sub(lastSaveTime).Seconds() > SaveSeconds {
 				r.log("scheduleLoop scale=%2d save loop=%8d,totalLoop=%8d %d %f %f\n",
 					scaleCount, loop, totalLoop, r.DeployedMachineCount, startCost, currentCost)
-				err := r.mergeOutput()
-				if err != nil {
-					fmt.Printf("[%s]scheduleLoop save failed,%s\n",
-						time.Now().Format(time.RFC3339), err)
-				}
+				//err := r.mergeOutput()
+				//if err != nil {
+				//	fmt.Printf("[%s]scheduleLoop save failed,%s\n",
+				//		time.Now().Format(time.RFC3339), err)
+				//}
 				lastSaveTime = now
 			}
 

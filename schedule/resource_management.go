@@ -200,6 +200,13 @@ func (r *ResourceManagement) initE() (err error) {
 	return nil
 }
 
+func (r *ResourceManagement) beginOffline() {
+	//将计算点从实例的98点提升到98*15点
+	for _, m := range r.MachineList {
+		m.beginOffline()
+	}
+}
+
 func (r *ResourceManagement) Run() (err error) {
 	err = r.init()
 	if err != nil {
@@ -219,16 +226,11 @@ func (r *ResourceManagement) Run() (err error) {
 		return err
 	}
 
-	//将计算点从实例的98点提升到98*15点
-	for _, m := range r.MachineList {
-		m.beginOffline()
-	}
-
 	//初始化部署任务
-	err = r.firstFitJobs()
-	if err != nil {
-		return err
-	}
+	//err = r.firstFitJobs()
+	//if err != nil {
+	//	return err
+	//}
 
 	//优化迭代
 	r.scheduleLoop()
