@@ -50,13 +50,17 @@ func main() {
 	}
 
 	go run(appResourceConfigMap, appInferenceConfigMap, "a")
-	go run(appResourceConfigMap, appInferenceConfigMap, "b")
-	go run(appResourceConfigMap, appInferenceConfigMap, "c")
-	go run(appResourceConfigMap, appInferenceConfigMap, "d")
-	go run(appResourceConfigMap, appInferenceConfigMap, "e")
+	//go run(appResourceConfigMap, appInferenceConfigMap, "b")
+	//go run(appResourceConfigMap, appInferenceConfigMap, "c")
+	//go run(appResourceConfigMap, appInferenceConfigMap, "d")
+	//go run(appResourceConfigMap, appInferenceConfigMap, "e")
 
 	for {
+		err := output()
+		if err != nil {
+			fmt.Println("output failed", err.Error())
+		}
+
 		time.Sleep(time.Second * 30)
-		output()
 	}
 }
