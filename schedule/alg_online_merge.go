@@ -588,7 +588,7 @@ func (o *OnlineMerge) roundFinal() (err error) {
 		len(o.MachineList), len(o.DeployedMachineList), len(o.FreeMachineList), moveAlready, moveSuccess, moveRest)
 
 	if moveRest > 0 {
-		return fmt.Errorf("OnlineMerge.roundFinal failed,rest=%d\n", moveRest)
+		return fmt.Errorf("OnlineMerge.roundFinal failed,rest=%d", moveRest)
 	}
 
 	return nil
