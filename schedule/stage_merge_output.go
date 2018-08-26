@@ -9,7 +9,23 @@ import (
 )
 
 func (r *ResourceManagement) buildJobDeployCommands() (commands []*JobDeployCommand) {
-	return nil
+	commands = make([]*JobDeployCommand, 0)
+	for _, m := range r.MachineList {
+		if m.JobListCount == 0 {
+			continue
+		}
+
+		for _, job := range m.JobList[:m.JobListCount] {
+			commands = append(commands, &JobDeployCommand{
+				JobId:        job.Config.RealJobId,
+				MachineId:    m.MachineId,
+				Count:        job.InstanceCount,
+				StartMinutes: job.StartMinutes,
+			})
+		}
+	}
+
+	return commands
 }
 
 func (r *ResourceManagement) output(instanceMoveCommands []*InstanceMoveCommand, jobDeployCommands []*JobDeployCommand) (err error) {

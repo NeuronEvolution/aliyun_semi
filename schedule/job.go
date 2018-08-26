@@ -7,7 +7,7 @@ type JobCommonState struct {
 }
 
 func (s *JobCommonState) UpdateTime() {
-	s.StartTime = 98 * 15
+	s.StartTime = TimeSampleCount * 15
 	s.EndTime = 0
 	for _, job := range s.Jobs {
 		if job.StartMinutes == -1 {

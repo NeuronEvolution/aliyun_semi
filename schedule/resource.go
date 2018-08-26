@@ -26,36 +26,6 @@ type Resource struct {
 	CpuCost      float64
 }
 
-func (r *Resource) Reset() {
-	for i := 0; i < len(r.Cpu); i++ {
-		r.Cpu[i] = 0
-	}
-
-	for i := 0; i < len(r.Mem); i++ {
-		r.Mem[i] = 0
-	}
-
-	r.Disk = 0
-	r.P = 0
-	r.M = 0
-	r.PM = 0
-
-	r.CpuCost = 0
-	r.cpuCostValid = true
-}
-
-func (r *Resource) DebugPrint() {
-	r.CalcTimedResourceStatistics()
-
-	fmt.Printf("Resource.Print ")
-	fmt.Printf("Disk=%4d,", r.Disk)
-	fmt.Printf("P=%d,M=%d,PM=%d,", r.P, r.M, r.PM)
-	fmt.Printf("CpuAvg=%4.1f,CpuDev=%4.1f,CpuMin=%4.1f,CpuMax=%4.1f,",
-		r.CpuAvg, r.CpuDeviation, r.CpuMin, r.CpuMax)
-	fmt.Printf("MemAvg=%5.1f,MemDev=%5.1f,MemMin=%5.1f,MemMax=%5.1f\n",
-		r.MemAvg, r.MemDeviation, r.MemMin, r.MemMax)
-}
-
 func (r *Resource) AddResource(p *Resource) {
 	for i, v := range p.Cpu {
 		r.Cpu[i] += v
@@ -156,4 +126,16 @@ func (r *Resource) GetCostWithInstance(instance *Instance, cpuLimit float64) flo
 	}
 
 	return totalCost / TimeSampleCount
+}
+
+func (r *Resource) DebugPrint() {
+	r.CalcTimedResourceStatistics()
+
+	fmt.Printf("Resource.Print ")
+	fmt.Printf("Disk=%4d,", r.Disk)
+	fmt.Printf("P=%d,M=%d,PM=%d,", r.P, r.M, r.PM)
+	fmt.Printf("CpuAvg=%4.1f,CpuDev=%4.1f,CpuMin=%4.1f,CpuMax=%4.1f,",
+		r.CpuAvg, r.CpuDeviation, r.CpuMin, r.CpuMax)
+	fmt.Printf("MemAvg=%5.1f,MemDev=%5.1f,MemMin=%5.1f,MemMax=%5.1f\n",
+		r.MemAvg, r.MemDeviation, r.MemMin, r.MemMax)
 }

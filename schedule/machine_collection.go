@@ -1,102 +1,50 @@
 package schedule
 
-import "fmt"
-
-type MachineCollection struct {
-	Map       map[int]*Machine
-	List      []*Machine
-	ListCount int
-}
-
-func NewMachineCollection() *MachineCollection {
-	c := &MachineCollection{}
-	c.Map = make(map[int]*Machine)
-	c.List = make([]*Machine, MaxMachineId+1)
-
-	return c
-}
-
-func (c *MachineCollection) debugValidation() {
-	for i := 0; i < c.ListCount; i++ {
-		if c.List[i] == nil {
-			panic(fmt.Errorf("MachineCollection.debugValidation c.List[%d]==nil,%d", i, c.ListCount))
-		}
-	}
-}
-
-func (c *MachineCollection) Add(m *Machine) {
-	//debugLog("MachineCollection.Add %d", m.MachineId)
-
-	if DebugEnabled {
-		_, has := c.Map[m.MachineId]
-		if has {
-			panic(fmt.Errorf("MachineCollection.Add %d exists", m.MachineId))
-		}
+func MachinesCopy(p []*Machine) (r []*Machine) {
+	if p == nil {
+		return nil
 	}
 
-	c.Map[m.MachineId] = m
-	c.List[c.ListCount] = m
-	c.ListCount++
-
-	if DebugEnabled {
-		c.debugValidation()
+	r = make([]*Machine, len(p))
+	for i, v := range p {
+		r[i] = v
 	}
+
+	return r
 }
 
-func (c *MachineCollection) Remove(machineId int) {
-	//debugLog("MachineCollection.Remove %d", machineId)
-
-	if DebugEnabled {
-		_, has := c.Map[machineId]
-		if !has {
-			panic(fmt.Errorf("MachineCollection.Add %d not exists", machineId))
-		}
-	}
-
-	delete(c.Map, machineId)
-
-	for i := 0; i < c.ListCount; i++ {
-		v := c.List[i]
+func MachinesContains(machines []*Machine, machineId int) bool {
+	for _, v := range machines {
 		if v.MachineId == machineId {
-			c.List[i] = nil
-			if c.ListCount > 1 && i < c.ListCount-1 {
-				c.List[i] = c.List[c.ListCount-1]
-			}
-			c.ListCount--
+			return true
 		}
 	}
 
-	if DebugEnabled {
-		c.debugValidation()
-	}
+	return false
 }
 
-func (c *MachineCollection) Peek() (m *Machine) {
-	//debugLog("MachineCollection.Peek ListCount=%d", c.ListCount)
-	if c.ListCount == 0 {
-		return nil
+func MachinesRemove(machines []*Machine, removes []*Machine) (rest []*Machine) {
+	rest = make([]*Machine, 0)
+	for _, v := range machines {
+		has := false
+		for _, i := range removes {
+			if i.MachineId == v.MachineId {
+				has = true
+				break
+			}
+		}
+		if !has {
+			rest = append(rest, v)
+		}
 	}
 
-	return c.List[c.ListCount-1]
+	return rest
 }
 
-func (c *MachineCollection) Has(machinedId int) bool {
-	_, has := c.Map[machinedId]
-	return has
-}
-
-func (c *MachineCollection) First() *Machine {
-	if c.ListCount == 0 {
-		return nil
+func MachinesGetInstances(machines []*Machine) (instances []*Instance) {
+	instances = make([]*Instance, 0)
+	for _, m := range machines {
+		instances = append(instances, m.InstanceList[:m.InstanceListCount]...)
 	}
-
-	return c.List[0]
-}
-
-func (c *MachineCollection) Last() *Machine {
-	if c.ListCount == 0 {
-		return nil
-	}
-
-	return c.List[c.ListCount-1]
+	return instances
 }

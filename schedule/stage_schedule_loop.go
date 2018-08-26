@@ -104,18 +104,18 @@ func (r *ResourceManagement) checkScale() (machineCountAllocate int) {
 	h2 := 0
 	h3 := 0
 	for _, m := range r.MachineList[:r.DeployedMachineCount] {
-		if m.GetCpuCost() > 1.01 {
+		if m.GetCpuCost() > ScaleLimitH1 {
 			h1++
 		}
-		if m.GetCpuCost() > 1.1 {
+		if m.GetCpuCost() > ScaleLimitH2 {
 			h2++
 		}
-		if m.GetCpuCost() > 1.2 {
+		if m.GetCpuCost() > ScaleLimitH3 {
 			h3++
 		}
 	}
 
-	count := (h1-h2)/200 + (h2-h3)/20 + h3/10
+	count := (h1-h2)/ScaleRatioH1 + (h2-h3)/ScaleRatioH2 + h3/ScaleRatioH3
 
 	r.log("checkScale h1=%4d,h2=%4d,h3=%4d,count=%4d\n", h1, h2, h3, count)
 
@@ -141,15 +141,15 @@ func (r *ResourceManagement) scheduleLoop() {
 		deadLoop := 0
 		stop := false
 		for ; ; loop++ {
-			if r.Dataset == "e" {
-				if totalLoop%1024 == 0 {
-					err := r.mergeOutput()
-					if err != nil {
-						r.log("scheduleLoop failed scale=%2d dead loop=%8d,totalLoop=%8d,%s\n",
-							scaleCount, deadLoop, totalLoop, err.Error())
-					}
+			//if r.Dataset == "e" {//todo
+			if totalLoop%1024 == 0 {
+				err := r.mergeOutput()
+				if err != nil {
+					r.log("scheduleLoop failed scale=%2d dead loop=%8d,totalLoop=%8d,%s\n",
+						scaleCount, deadLoop, totalLoop, err.Error())
 				}
 			}
+			//}
 
 			totalLoop++
 
@@ -168,7 +168,7 @@ func (r *ResourceManagement) scheduleLoop() {
 				scaleCount, loop, totalLoop, r.DeployedMachineCount, startCost, currentCost)
 
 			now := time.Now()
-			if now.Sub(lastSaveTime).Seconds() > 60*30 {
+			if now.Sub(lastSaveTime).Seconds() > SaveSeconds {
 				r.log("scheduleLoop scale=%2d save loop=%8d,totalLoop=%8d %d %f %f\n",
 					scaleCount, loop, totalLoop, r.DeployedMachineCount, startCost, currentCost)
 				err := r.mergeOutput()
@@ -186,7 +186,7 @@ func (r *ResourceManagement) scheduleLoop() {
 				break
 			}
 
-			if loop >= 128*int(math.Pow(1.414, float64(scaleCount))) {
+			if loop >= ScaleBase*int(math.Pow(ScaleRatio, float64(scaleCount))) {
 				machineCountAllocate := r.checkScale()
 				if machineCountAllocate > 0 {
 					r.DeployedMachineCount += machineCountAllocate

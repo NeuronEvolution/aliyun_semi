@@ -1,26 +1,19 @@
 package schedule
 
 const TimeSampleCount = 98
-
+const ScaleLimitH1 = 1.01
+const ScaleLimitH2 = 1.1
+const ScaleLimitH3 = 1.2
+const ScaleRatioH1 = 200
+const ScaleRatioH2 = 20
+const ScaleRatioH3 = 10
+const ScaleBase = 128
+const ScaleRatio = 1.414
+const SaveSeconds = 30 * 60
 const MaxAppId = 10000
-const MaxInstanceId = 100000
-const MaxMachineId = 6000 + 1
-const MachineCpuMax = 92
-const MachineMemMax = 288
-const MachineDiskMax = 1024
-const MachinePMax = 7
-const MachineMMax = 7
-const MachinePMMax = 9
 
-const MaxDeployCommandCount = 1024 * 1024
-const MaxInstancePerMachine = 1024
-const MaxAppPerMachine = 64
-
-const ParamMachineCostMultiply = 4 //影响大
-const ParamDeviationMultiply = 1   //影响大
-const ParamAppInferenceMultiply = 1
-const ParamAppCostMultiply = 5 //影响大
-const ParamCpuCostMultiply = 1
+const MaxInstancePerMachine = 256
+const MaxAppPerMachine = 256
 
 const MaxCpuRatio = float64(0.5)
 

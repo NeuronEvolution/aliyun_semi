@@ -203,8 +203,6 @@ func (r *ResourceManagement) Run() (err error) {
 		return err
 	}
 
-	return
-
 	r.DeployMap = make([]*Machine, r.MaxInstanceId+1)
 	r.JobDeployMap = make([]*Machine, r.MaxJobInstanceId+1)
 
