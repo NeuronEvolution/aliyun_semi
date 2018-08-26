@@ -32,10 +32,19 @@ type JobConfig struct {
 	InstanceCount int
 	ExecMinutes   int
 	PreJobs       []int
-	Parents       []*JobConfig
-	Children      []*JobConfig
+
+	Parents                 []*JobConfig
+	Children                []*JobConfig
+	MinStartTime            int
+	MaxStartTime            int
+	MinEndTime              int
+	MaxEndTime              int
+	TimeRangeMinInitialized bool
+	TimeRangeMaxInitialized bool
+	State                   *JobCommonState //相同配置的任务实例共享的时间状态
 }
 
+//任务打包部署
 func (c *JobConfig) getPackCount() (count int) {
 	maxCpu := float64(16)
 	maxMem := float64(32)

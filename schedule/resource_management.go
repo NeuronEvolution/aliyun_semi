@@ -96,8 +96,6 @@ func (r *ResourceManagement) createMachines() (machineList []*Machine, machineMa
 }
 
 func (r *ResourceManagement) createInstances() (instanceList []*Instance, instanceMap []*Instance) {
-	r.log("createInstances\n")
-
 	instanceMap = make([]*Instance, r.MaxInstanceId+1)
 	for _, config := range r.InstanceDeployConfigList {
 		if config == nil {
@@ -113,7 +111,6 @@ func (r *ResourceManagement) createInstances() (instanceList []*Instance, instan
 }
 
 func (r *ResourceManagement) createJobs() {
-	r.log("createJobs\n")
 	r.JobMap = make([]*Job, 0)
 	r.JobMap = append(r.JobMap, nil)
 	currentJobInstanceId := 0
@@ -122,6 +119,8 @@ func (r *ResourceManagement) createJobs() {
 		if config == nil {
 			continue
 		}
+
+		config.State = &JobCommonState{}
 
 		rest := config.InstanceCount
 		packCount := config.getPackCount()
@@ -135,6 +134,7 @@ func (r *ResourceManagement) createJobs() {
 			job := NewJob(r, currentJobInstanceId, config, count)
 			r.JobMap = append(r.JobMap, job)
 			r.MaxJobInstanceId = currentJobInstanceId
+			config.State.Jobs = append(config.State.Jobs, job)
 
 			rest -= packCount
 			if rest <= 0 {
@@ -146,47 +146,24 @@ func (r *ResourceManagement) createJobs() {
 	r.log("createJobs MaxJobInstanceId=%d\n", r.MaxJobInstanceId)
 }
 
-func (r *ResourceManagement) Run() (err error) {
+func (r *ResourceManagement) init() (err error) {
 	err = MakeDirIfNotExists(r.OutputDir + "/")
 	if err != nil {
 		return err
 	}
 
-	//创建实例和任务
-	r.DeployMap = make([]*Machine, r.MaxInstanceId+1)
-	r.JobDeployMap = make([]*Machine, r.MaxJobInstanceId+1)
+	//创建机器
 	r.MachineList, r.MachineMap = r.createMachines()
-	r.InstanceList, r.InstanceMap = r.createInstances()
-	r.createJobs()
 
-	return
+	//创建实例
+	r.InstanceList, r.InstanceMap = r.createInstances()
+
+	//创建任务
+	r.initJobConfigs()
+	r.createJobs()
 
 	//数据简单分析
 	r.analysis()
-
-	//初始化部署实例
-	if r.Dataset == "e" {
-		err = r.initE()
-	} else {
-		err = r.firstFitInstances()
-	}
-	if err != nil {
-		return err
-	}
-
-	//将计算点从实例的98点提升到98*15点
-	for _, m := range r.MachineList[:r.DeployedMachineCount] {
-		m.beginOffline()
-	}
-
-	//初始化部署任务
-	err = r.firstFitJobs()
-	if err != nil {
-		return err
-	}
-
-	//优化迭代
-	r.scheduleLoop()
 
 	return nil
 }
@@ -216,6 +193,44 @@ func (r *ResourceManagement) initE() (err error) {
 		m.AddInstance(r.InstanceMap[config.InstanceId])
 		r.DeployMap[config.InstanceId] = m
 	}
+
+	return nil
+}
+
+func (r *ResourceManagement) Run() (err error) {
+	err = r.init()
+	if err != nil {
+		return err
+	}
+
+	return
+
+	r.DeployMap = make([]*Machine, r.MaxInstanceId+1)
+	r.JobDeployMap = make([]*Machine, r.MaxJobInstanceId+1)
+
+	//初始化部署实例
+	if r.Dataset == "e" {
+		err = r.initE()
+	} else {
+		err = r.firstFitInstances()
+	}
+	if err != nil {
+		return err
+	}
+
+	//将计算点从实例的98点提升到98*15点
+	for _, m := range r.MachineList[:r.DeployedMachineCount] {
+		m.beginOffline()
+	}
+
+	//初始化部署任务
+	err = r.firstFitJobs()
+	if err != nil {
+		return err
+	}
+
+	//优化迭代
+	r.scheduleLoop()
 
 	return nil
 }

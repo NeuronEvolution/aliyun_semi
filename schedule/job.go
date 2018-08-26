@@ -1,5 +1,30 @@
 package schedule
 
+type JobCommonState struct {
+	Jobs      []*Job
+	StartTime int
+	EndTime   int
+}
+
+func (s *JobCommonState) UpdateTime() {
+	s.StartTime = 98 * 15
+	s.EndTime = 0
+	for _, job := range s.Jobs {
+		if job.StartMinutes == -1 {
+			continue
+		}
+
+		if job.StartMinutes < s.StartTime {
+			s.StartTime = job.StartMinutes
+		}
+
+		endTime := job.StartMinutes + job.Config.ExecMinutes
+		if endTime > s.EndTime {
+			s.EndTime = endTime
+		}
+	}
+}
+
 type Job struct {
 	R             *ResourceManagement
 	JobInstanceId int
@@ -12,15 +37,21 @@ type Job struct {
 }
 
 func NewJob(r *ResourceManagement, jobInstanceId int, config *JobConfig, instanceCount int) *Job {
-	j := &Job{}
-	j.R = r
-	j.JobInstanceId = jobInstanceId
-	j.Config = config
-	j.InstanceCount = instanceCount
-	j.Cpu = j.Config.Cpu * float64(j.InstanceCount)
-	j.Mem = j.Config.Mem * float64(j.InstanceCount)
+	job := &Job{}
+	job.R = r
+	job.JobInstanceId = jobInstanceId
+	job.Config = config
+	job.InstanceCount = instanceCount
+	job.Cpu = job.Config.Cpu * float64(job.InstanceCount)
+	job.Mem = job.Config.Mem * float64(job.InstanceCount)
+	job.StartMinutes = -1
 
-	return j
+	return job
+}
+
+func (job *Job) SetStartMinutes(t int) {
+	job.StartMinutes = t
+	job.Config.State.UpdateTime()
 }
 
 func JobsCopy(p []*Job) (r []*Job) {
