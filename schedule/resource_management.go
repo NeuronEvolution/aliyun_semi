@@ -183,6 +183,15 @@ func (r *ResourceManagement) CalcTotalScore() float64 {
 	return score
 }
 
+func (r *ResourceManagement) CalcTotalScoreReal() float64 {
+	score := float64(0)
+	for _, m := range r.MachineList[:r.DeployedMachineCount] {
+		score += m.GetCpuCostReal()
+	}
+
+	return score
+}
+
 func (r *ResourceManagement) initE() (err error) {
 	r.DeployedMachineCount = 8000
 	for _, config := range r.InstanceDeployConfigList {

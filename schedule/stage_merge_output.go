@@ -14,6 +14,7 @@ func (r *ResourceManagement) buildJobDeployCommands() (commands []*JobDeployComm
 
 func (r *ResourceManagement) output(instanceMoveCommands []*InstanceMoveCommand, jobDeployCommands []*JobDeployCommand) (err error) {
 	outputFile := fmt.Sprintf(r.OutputDir+"/%s", time.Now().Format("20060102_150405"))
+	latestFile := fmt.Sprintf(r.OutputDir + "/latest.csv")
 
 	buf := bytes.NewBufferString("")
 	if instanceMoveCommands != nil {
@@ -27,6 +28,11 @@ func (r *ResourceManagement) output(instanceMoveCommands []*InstanceMoveCommand,
 		}
 	}
 
+	err = ioutil.WriteFile(latestFile, buf.Bytes(), os.ModePerm)
+	if err != nil {
+		return err
+	}
+
 	err = ioutil.WriteFile(outputFile+".csv", buf.Bytes(), os.ModePerm)
 	if err != nil {
 		return err
@@ -35,7 +41,7 @@ func (r *ResourceManagement) output(instanceMoveCommands []*InstanceMoveCommand,
 	summaryBuf := bytes.NewBufferString("")
 	summaryBuf.WriteString(fmt.Sprintf("machineCount=%d\n", r.DeployedMachineCount))
 	summaryBuf.WriteString(fmt.Sprintf("instanceMoveCommand=%d\n", len(instanceMoveCommands)))
-	summaryBuf.WriteString(fmt.Sprintf("cost=%f\n", r.CalcTotalScore()))
+	summaryBuf.WriteString(fmt.Sprintf("cost=%f,realCost=%f\n", r.CalcTotalScore(), r.CalcTotalScoreReal()))
 
 	err = ioutil.WriteFile(fmt.Sprintf(outputFile+"_summary.csv"), summaryBuf.Bytes(), os.ModePerm)
 	if err != nil {
