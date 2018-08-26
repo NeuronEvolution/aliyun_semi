@@ -54,15 +54,38 @@ func (job *Job) SetStartMinutes(t int) {
 	job.Config.State.UpdateTime()
 }
 
-func JobsCopy(p []*Job) (r []*Job) {
-	if p == nil {
-		return nil
+func (job *Job) GetTimeRange() (startTimeMin int, startTimeMax int, endTimeMin int, endTimeMax int) {
+	c := job.Config
+
+	startTimeMin = c.StartTimeMin
+	startTimeMax = c.StartTimeMax
+	endTimeMin = c.EndTimeMin
+	endTimeMax = c.EndTimeMax
+
+	//fmt.Println("GetTimeRange 1", job.JobInstanceId, startTimeMin, startTimeMax, endTimeMin, endTimeMax)
+
+	if c.Parents != nil {
+		for _, v := range c.Parents {
+			if startTimeMin < v.State.EndTime {
+				//fmt.Println("parent", v.JobId, startTimeMin, v.State.EndTime)
+				startTimeMin = v.State.EndTime
+			}
+		}
 	}
 
-	r = make([]*Job, len(p))
-	for i, v := range p {
-		r[i] = v
+	if c.Children != nil {
+		for _, v := range c.Children {
+			if endTimeMax > v.State.StartTime {
+				//fmt.Println("children", v.JobId, endTimeMax, v.State.StartTime)
+				endTimeMax = v.State.StartTime
+			}
+		}
 	}
 
-	return r
+	endTimeMin = startTimeMin + c.ExecMinutes
+	startTimeMax = endTimeMax - c.ExecMinutes
+
+	//fmt.Println("GetTimeRange 2", startTimeMin, startTimeMax, endTimeMin, endTimeMax)
+
+	return startTimeMin, startTimeMax, endTimeMin, endTimeMax
 }

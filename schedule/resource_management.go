@@ -31,6 +31,7 @@ type ResourceManagement struct {
 	InstanceMap          []*Instance
 	MaxInstanceId        int
 	DeployMap            []*Machine
+	JobList              []*Job
 	JobMap               []*Job
 	JobDeployMap         []*Machine
 }
@@ -121,6 +122,7 @@ func (r *ResourceManagement) createJobs() {
 		}
 
 		config.State = &JobCommonState{}
+		config.State.UpdateTime()
 
 		rest := config.InstanceCount
 		packCount := config.getPackCount()
@@ -132,6 +134,7 @@ func (r *ResourceManagement) createJobs() {
 
 			currentJobInstanceId++
 			job := NewJob(r, currentJobInstanceId, config, count)
+			r.JobList = append(r.JobList, job)
 			r.JobMap = append(r.JobMap, job)
 			r.MaxJobInstanceId = currentJobInstanceId
 			config.State.Jobs = append(config.State.Jobs, job)
@@ -217,7 +220,7 @@ func (r *ResourceManagement) Run() (err error) {
 	}
 
 	//将计算点从实例的98点提升到98*15点
-	for _, m := range r.MachineList[:r.DeployedMachineCount] {
+	for _, m := range r.MachineList {
 		m.beginOffline()
 	}
 

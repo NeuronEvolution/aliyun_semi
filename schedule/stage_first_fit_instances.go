@@ -17,7 +17,7 @@ func (r *ResourceManagement) firstFitInstances() (err error) {
 	SortInstanceByTotalMaxLowWithInference(instances, 16)
 
 	for i, instance := range instances {
-		if i > 0 && i%1000 == 0 {
+		if i > 0 && i%10000 == 0 {
 			r.log("firstFitInstances %d\n", i)
 		}
 
@@ -26,6 +26,7 @@ func (r *ResourceManagement) firstFitInstances() (err error) {
 			if m.ConstraintCheck(instance, 1) {
 				m.AddInstance(instance)
 				r.DeployMap[instance.InstanceId] = m
+				//更新部署数量
 				if machineIndex+1 > r.DeployedMachineCount {
 					r.DeployedMachineCount = machineIndex + 1
 				}

@@ -4,20 +4,19 @@ const TimeSampleCount = 98
 const ScaleLimitH1 = 1.01
 const ScaleLimitH2 = 1.1
 const ScaleLimitH3 = 1.2
-const ScaleRatioH1 = 200
-const ScaleRatioH2 = 20
-const ScaleRatioH3 = 10
+const ScaleRatioH1 = 200 //400
+const ScaleRatioH2 = 20  //40
+const ScaleRatioH3 = 10  //20
 const ScaleBase = 128
 const ScaleRatio = 1.414
 const SaveSeconds = 30 * 60
 const MaxAppId = 10000
-
 const MaxInstancePerMachine = 256
 const MaxAppPerMachine = 256
-
+const MaxJobPerMachine = 1024
 const MaxCpuRatio = float64(0.5)
-
 const ConstraintE = float64(0.0000001)
+const MaxJobExecMinutes = 144
 
 //92,288,2457,7,7,9
 const HighCpu = 92

@@ -32,6 +32,7 @@ func NewMachine(r *ResourceManagement, machineId int, config *MachineConfig) *Ma
 	m.MachineId = machineId
 	m.Config = config
 	m.InstanceList = make([]*Instance, MaxInstancePerMachine)
+	m.JobList = make([]*Job, MaxJobPerMachine)
 	m.appCountCollection = NewAppCountCollection()
 
 	return m
@@ -89,7 +90,7 @@ func (m *Machine) RemoveInstance(instanceId int) {
 func (m *Machine) AddJob(job *Job) {
 	m.JobList[m.JobListCount] = job
 	m.JobListCount++
-	for i := 0; i < 15; i++ {
+	for i := 0; i < job.Config.ExecMinutes; i++ {
 		m.Cpu[job.StartMinutes+i] += job.Cpu
 		m.Mem[job.StartMinutes+i] += job.Mem
 	}
@@ -254,4 +255,23 @@ func (m *Machine) DebugPrint() {
 	}
 
 	m.Resource.DebugPrint()
+}
+
+func (m *Machine) CanFirstFitJob(job *Job, startTimeMin int, startTimeMax int) (ok bool, startMinutes int) {
+	//debugLog("checkMachineAddJob %d,%d,%d\n", m.MachineId, job.JobInstanceId, job.Config.ExecMinutes)
+	for i := startTimeMin; i <= startTimeMax; i++ {
+		failed := false
+		for j := i; j < i+job.Config.ExecMinutes; j++ {
+			if m.Cpu[j]+job.Cpu > m.Config.Cpu || m.Mem[j]+job.Mem > m.Config.Mem {
+				failed = true
+				i = j
+				break
+			}
+		}
+		if !failed {
+			return true, i
+		}
+	}
+
+	return false, 0
 }

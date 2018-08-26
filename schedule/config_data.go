@@ -35,10 +35,10 @@ type JobConfig struct {
 
 	Parents                 []*JobConfig
 	Children                []*JobConfig
-	MinStartTime            int
-	MaxStartTime            int
-	MinEndTime              int
-	MaxEndTime              int
+	StartTimeMin            int
+	StartTimeMax            int
+	EndTimeMin              int
+	EndTimeMax              int
 	TimeRangeMinInitialized bool
 	TimeRangeMaxInitialized bool
 	State                   *JobCommonState //相同配置的任务实例共享的时间状态
