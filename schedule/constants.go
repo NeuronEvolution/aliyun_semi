@@ -9,7 +9,6 @@ const ScaleRatioH2 = 20  //40
 const ScaleRatioH3 = 10  //20
 const ScaleBase = 128
 const ScaleRatio = 1.414
-const SaveSeconds = 30 * 60
 const MaxAppId = 10000
 const MaxInstancePerMachine = 256
 const MaxAppPerMachine = 256

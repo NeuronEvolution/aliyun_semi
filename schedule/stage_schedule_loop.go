@@ -2,9 +2,7 @@ package schedule
 
 import (
 	"math"
-	"os"
 	"sync"
-	"time"
 )
 
 func (r *ResourceManagement) scheduleMachines(machines []*Machine, deadLoop int) (has bool) {
@@ -127,15 +125,11 @@ func (r *ResourceManagement) scheduleLoop() {
 	}
 
 	startCost := r.CalcTotalScore()
-
-	lastSaveTime := time.Date(2000, 1, 1, 0, 0, 0, 0, time.Local)
 	totalLoop := 0
 	for scaleCount := 0; ; scaleCount++ {
 		r.log("scheduleLoop scale=%2d start cost=%f\n", scaleCount, r.CalcTotalScore())
-
 		pTableBigSmall := randBigSmall(r.DeployedMachineCount)
 		pTableSmallBig := randSmallBig(r.DeployedMachineCount)
-
 		loop := 0
 		deadLoop := 0
 		stop := false
@@ -175,25 +169,6 @@ func (r *ResourceManagement) scheduleLoop() {
 			currentCost := r.CalcTotalScore()
 			r.log("scheduleLoop scale=%2d loop=%8d,totalLoop=%8d %d %f %f\n",
 				scaleCount, loop, totalLoop, r.DeployedMachineCount, startCost, currentCost)
-
-			now := time.Now()
-			if now.Sub(lastSaveTime).Seconds() > SaveSeconds {
-				r.log("scheduleLoop scale=%2d save loop=%8d,totalLoop=%8d %d %f %f\n",
-					scaleCount, loop, totalLoop, r.DeployedMachineCount, startCost, currentCost)
-				//err := r.mergeOutput()
-				//if err != nil {
-				//	fmt.Printf("[%s]scheduleLoop save failed,%s\n",
-				//		time.Now().Format(time.RFC3339), err)
-				//}
-				lastSaveTime = now
-			}
-
-			_, err := os.Stat(r.OutputDir + "/" + "aliyun_stop")
-			if err == nil {
-				r.log("scheduleLoop scale=%2d loop=%8d,totalLoop=%8d aliyun_stop\n", scaleCount, loop, totalLoop)
-				stop = true
-				break
-			}
 
 			if loop >= ScaleBase*int(math.Pow(ScaleRatio, float64(scaleCount))) {
 				machineCountAllocate := r.checkScale()

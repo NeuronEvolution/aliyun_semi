@@ -106,7 +106,7 @@ func (r *ResourceManagement) mergeOutput() (err error) {
 
 	r.beginOffline()
 
-	//todo 这里需要考虑在线迁移时的实例交换
+	//todo 这里需要考虑在线迁移时的实例交换,改为从初始状态迁移后再部署任务
 	machines := make([]*Machine, len(r.MachineList))
 	for i, m := range r.MachineList {
 		machine := NewMachine(m.R, m.MachineId, m.Config)
