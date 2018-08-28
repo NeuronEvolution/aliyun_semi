@@ -51,7 +51,9 @@ func (o *OnlineMerge) init() {
 	}
 
 	//交换机器，固定住大的实例
-	o.fixMachines()
+	if o.R.Dataset == "e" { //其他几个数据集估计不需要，这里如果放开，外面需要处理交换的机器
+		o.fixMachines()
+	}
 
 	//区分部署和空闲机器
 	o.DeployedMachineMap = make([]*Machine, o.R.MaxMachineId+1)

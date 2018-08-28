@@ -226,12 +226,6 @@ func (r *ResourceManagement) Run() (err error) {
 		return err
 	}
 
-	//初始化部署任务
-	//err = r.firstFitJobs()
-	//if err != nil {
-	//	return err
-	//}
-
 	//优化迭代
 	r.scheduleLoop()
 

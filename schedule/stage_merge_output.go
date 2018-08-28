@@ -10,9 +10,9 @@ import (
 	"time"
 )
 
-func (r *ResourceManagement) buildJobDeployCommands() (commands []*JobDeployCommand) {
+func (r *ResourceManagement) buildJobDeployCommands(machines []*Machine) (commands []*JobDeployCommand) {
 	commands = make([]*JobDeployCommand, 0)
-	for _, m := range r.MachineList {
+	for _, m := range machines {
 		if m.JobListCount == 0 {
 			continue
 		}
@@ -41,7 +41,7 @@ func (r *ResourceManagement) output(instanceMoveCommands []*InstanceMoveCommand,
 	}
 	if jobDeployCommands != nil {
 		for _, v := range jobDeployCommands {
-			buf.WriteString(fmt.Sprintf("%s,machine_%d,%d,%d\n", v.JobId, v.MachineId, v.Count, v.StartMinutes))
+			buf.WriteString(fmt.Sprintf("%s,machine_%d,%d,%d\n", v.JobId, v.MachineId, v.StartMinutes, v.Count))
 		}
 	}
 	err = ioutil.WriteFile(outputFile+".csv", buf.Bytes(), os.ModePerm)
@@ -106,21 +106,48 @@ func (r *ResourceManagement) mergeOutput() (err error) {
 
 	r.beginOffline()
 
-	err = r.firstFitJobs()
+	//todo 这里需要考虑在线迁移时的实例交换
+	machines := make([]*Machine, len(r.MachineList))
+	for i, m := range r.MachineList {
+		machine := NewMachine(m.R, m.MachineId, m.Config)
+		instances := InstancesCopy(m.InstanceList[:m.InstanceListCount])
+		for _, instance := range instances {
+			machine.AddInstance(instance)
+		}
+		machines[i] = machine
+	}
+
+	for _, m := range machines {
+		m.beginOffline()
+	}
+
+	totalScore := float64(0)
+	for _, m := range machines {
+		totalScore += m.GetCpuCost()
+	}
+	r.log("mergeOutput init totalScore=%f\n", totalScore)
+
+	err = r.firstFitJobs(machines)
 	if err != nil {
 		return err
 	}
+
+	totalScore = float64(0)
+	for _, m := range machines {
+		totalScore += m.GetCpuCost()
+	}
+	r.log("mergeOutput firstFitJobs totalScore=%f\n", totalScore)
 
 	instanceMoveCommands, err := NewOnlineMerge(r).Run()
 	if err != nil {
 		return err
 	}
 
-	jobDeployCommands := r.buildJobDeployCommands()
+	jobDeployCommands := r.buildJobDeployCommands(machines)
 
-	err = NewReplay(r, instanceMoveCommands, jobDeployCommands).Run()
+	err = NewReplay(r, instanceMoveCommands, jobDeployCommands).Run(machines)
 	if err != nil {
-		return err
+		return nil
 	}
 
 	return r.output(instanceMoveCommands, jobDeployCommands)

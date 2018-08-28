@@ -90,9 +90,11 @@ func (m *Machine) RemoveInstance(instanceId int) {
 func (m *Machine) AddJob(job *Job) {
 	m.JobList[m.JobListCount] = job
 	m.JobListCount++
-	for i := 0; i < job.Config.ExecMinutes; i++ {
-		m.Cpu[job.StartMinutes+i] += job.Cpu
-		m.Mem[job.StartMinutes+i] += job.Mem
+	for i := job.StartMinutes; i < job.StartMinutes+job.Config.ExecMinutes; i++ {
+		//fmt.Println(m.Cpu[job.StartMinutes+i], job.Cpu, job.Config.Cpu,
+		//	m.Mem[job.StartMinutes+i], job.Mem, job.Config.Mem, job.InstanceCount)
+		m.Cpu[i] += job.Cpu
+		m.Mem[i] += job.Mem
 	}
 	m.cpuCostValid = false
 }
@@ -109,9 +111,9 @@ func (m *Machine) RemoveJob(jobInstanceId int) {
 				m.JobList[m.JobListCount-1] = nil
 			}
 			m.JobListCount--
-			for i := 0; i < 15; i++ {
-				m.Cpu[job.StartMinutes+i] -= job.Cpu
-				m.Mem[job.StartMinutes+i] -= job.Mem
+			for i := job.StartMinutes; i < job.StartMinutes+job.Config.ExecMinutes; i++ {
+				m.Cpu[i] -= job.Cpu
+				m.Mem[i] -= job.Mem
 			}
 			m.cpuCostValid = false
 			break
@@ -252,18 +254,26 @@ func (m *Machine) DebugPrint() {
 	}
 
 	m.Resource.DebugPrint()
+
+	for _, job := range m.JobList[:m.JobListCount] {
+		job.DebugPrint()
+	}
 }
 
-func (m *Machine) CanFirstFitJob(job *Job, startTimeMin int, startTimeMax int) (ok bool, startMinutes int) {
-	//debugLog("checkMachineAddJob %d,%d,%d\n", m.MachineId, job.JobInstanceId, job.Config.ExecMinutes)
+func (m *Machine) CanFirstFitJob(job *Job, startTimeMin int, startTimeMax int, endTimeMin int, endTimeMax int) (ok bool, startMinutes int) {
+	//fmt.Printf("checkMachineAddJob %d,%d,%d,%d,%d,%d,%d\n",
+	//	m.MachineId, job.JobInstanceId, job.Config.ExecMinutes, startTimeMin, startTimeMax, endTimeMin, endTimeMax)
 	cpuRatio := float64(1)
 	if m.InstanceListCount > 0 {
 		cpuRatio = 0.5
+	} else {
+		cpuRatio = 0.6
 	}
+
 	for i := startTimeMin; i <= startTimeMax; i++ {
 		failed := false
 		for j := i; j < i+job.Config.ExecMinutes; j++ {
-			if m.Cpu[j]+job.Cpu > m.Config.Cpu*cpuRatio || m.Mem[j]+job.Mem > m.Config.Mem {
+			if m.Cpu[j]+job.Cpu > m.Config.Cpu*cpuRatio+ConstraintE || m.Mem[j]+job.Mem > m.Config.Mem+ConstraintE {
 				failed = true
 				i = j
 				break

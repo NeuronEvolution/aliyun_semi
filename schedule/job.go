@@ -1,5 +1,7 @@
 package schedule
 
+import "fmt"
+
 type JobCommonState struct {
 	Jobs      []*Job
 	StartTime int
@@ -66,8 +68,8 @@ func (job *Job) GetTimeRange() (startTimeMin int, startTimeMax int, endTimeMin i
 
 	if c.Parents != nil {
 		for _, v := range c.Parents {
+			//fmt.Println("parent", v.JobId, startTimeMin, v.State.EndTime)
 			if startTimeMin < v.State.EndTime {
-				//fmt.Println("parent", v.JobId, startTimeMin, v.State.EndTime)
 				startTimeMin = v.State.EndTime
 			}
 		}
@@ -75,8 +77,8 @@ func (job *Job) GetTimeRange() (startTimeMin int, startTimeMax int, endTimeMin i
 
 	if c.Children != nil {
 		for _, v := range c.Children {
+			//fmt.Println("children", v.JobId, endTimeMax, v.State.StartTime)
 			if endTimeMax > v.State.StartTime {
-				//fmt.Println("children", v.JobId, endTimeMax, v.State.StartTime)
 				endTimeMax = v.State.StartTime
 			}
 		}
@@ -88,4 +90,11 @@ func (job *Job) GetTimeRange() (startTimeMin int, startTimeMax int, endTimeMin i
 	//fmt.Println("GetTimeRange 2", startTimeMin, startTimeMax, endTimeMin, endTimeMax)
 
 	return startTimeMin, startTimeMax, endTimeMin, endTimeMax
+}
+
+func (job *Job) DebugPrint() {
+	fmt.Printf("Job cpu=%f,mem=%f,instanceCount=%d,t=%d,"+
+		"startTimeMin=%d,startTimeMax=%d,starttime=%d,endTime=%d\n",
+		job.Cpu, job.Mem, job.InstanceCount, job.StartMinutes,
+		job.Config.StartTimeMin, job.Config.StartTimeMax, job.Config.State.StartTime, job.Config.State.EndTime)
 }
