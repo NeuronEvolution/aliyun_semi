@@ -53,10 +53,10 @@ func NewJob(r *ResourceManagement, jobInstanceId int, config *JobConfig, instanc
 
 func (job *Job) SetStartMinutes(t int) {
 	job.StartMinutes = t
-	job.Config.State.UpdateTime()
 }
 
-func (job *Job) GetTimeRange() (startTimeMin int, startTimeMax int, endTimeMin int, endTimeMax int) {
+func (job *Job) GetTimeRange(scheduleState []*JobScheduleState) (
+	startTimeMin int, startTimeMax int, endTimeMin int, endTimeMax int) {
 	c := job.Config
 
 	startTimeMin = c.StartTimeMin
@@ -69,8 +69,8 @@ func (job *Job) GetTimeRange() (startTimeMin int, startTimeMax int, endTimeMin i
 	if c.Parents != nil {
 		for _, v := range c.Parents {
 			//fmt.Println("parent", v.JobId, startTimeMin, v.State.EndTime)
-			if startTimeMin < v.State.EndTime {
-				startTimeMin = v.State.EndTime
+			if startTimeMin < scheduleState[v.JobId].EndTime {
+				startTimeMin = scheduleState[v.JobId].EndTime
 			}
 		}
 	}
@@ -78,8 +78,8 @@ func (job *Job) GetTimeRange() (startTimeMin int, startTimeMax int, endTimeMin i
 	if c.Children != nil {
 		for _, v := range c.Children {
 			//fmt.Println("children", v.JobId, endTimeMax, v.State.StartTime)
-			if endTimeMax > v.State.StartTime {
-				endTimeMax = v.State.StartTime
+			if endTimeMax > scheduleState[v.JobId].StartTime {
+				endTimeMax = scheduleState[v.JobId].StartTime
 			}
 		}
 	}

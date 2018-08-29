@@ -19,7 +19,8 @@ func (r *ResourceManagement) calcJobsMachineNeed(jobs []*Job) (count int) {
 	return count
 }
 
-func (r *ResourceManagement) bestFitJobs(machines []*Machine, jobs []*Job) (ok bool, deploy map[*Job]int, restJobs []*Job) {
+func (r *ResourceManagement) bestFitJobs(machines []*Machine, jobs []*Job, scheduleState []*JobScheduleState) (
+	ok bool, deploy map[*Job]int, restJobs []*Job) {
 	for i, job := range jobs {
 		if i > 0 && i%100 == 0 {
 			r.log("bestFitJobs %d\n", i)
@@ -27,7 +28,7 @@ func (r *ResourceManagement) bestFitJobs(machines []*Machine, jobs []*Job) (ok b
 
 		min := TimeSampleCount * 15
 		var minMachine *Machine
-		startTimeMin, startTimeMax, endTimeMin, endTimeMax := job.GetTimeRange()
+		startTimeMin, startTimeMax, endTimeMin, endTimeMax := job.GetTimeRange(scheduleState)
 		for _, m := range machines {
 			ok, startTime := m.CanFirstFitJob(job, startTimeMin, startTimeMax, endTimeMin, endTimeMax)
 			if !ok {
@@ -42,6 +43,7 @@ func (r *ResourceManagement) bestFitJobs(machines []*Machine, jobs []*Job) (ok b
 			return false, nil, JobsCopy(jobs[i:])
 		}
 		job.SetStartMinutes(min)
+		scheduleState[job.Config.JobId].UpdateTime()
 		minMachine.AddJob(job)
 	}
 
@@ -58,7 +60,11 @@ func (r *ResourceManagement) jobsScheduleLoop(machines []*Machine) (err error) {
 		return job1.Config.EndTimeMin < job2.Config.EndTimeMin
 	})
 
-	ok, _, restJobs := r.bestFitJobs(machines[:800], r.JobList)
+	scheduleState := NewJobScheduleState(r, r.JobList)
+	for _, job := range r.JobList {
+		job.StartMinutes = -1
+	}
+	ok, _, restJobs := r.bestFitJobs(machines[:800], r.JobList, scheduleState)
 	if !ok {
 		fmt.Printf("bestFitJobs failed restJobs=%d\n", len(restJobs))
 		panic("aaaa")
@@ -86,7 +92,7 @@ func (r *ResourceManagement) jobsScheduleLoop(machines []*Machine) (err error) {
 
 	for {
 		tempMachines := MachinesClone(machines)
-		ok, deploy, restJobs := r.bestFitJobs(tempMachines[:currentMachineCount], r.JobList)
+		ok, deploy, restJobs := r.bestFitJobs(tempMachines[:currentMachineCount], r.JobList, scheduleState)
 		if ok {
 			for job, machineId := range deploy {
 				fmt.Println(job, machineId)

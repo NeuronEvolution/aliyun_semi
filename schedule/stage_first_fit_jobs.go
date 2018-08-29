@@ -13,12 +13,14 @@ func (r *ResourceManagement) firstFitJobs(machines []*Machine) (err error) {
 		return job1.Config.EndTimeMin < job2.Config.EndTimeMin
 	})
 
+	scheduleStates := NewJobScheduleState(r, r.JobList)
+
 	for i, job := range r.JobList {
 		if i > 0 && i%1000 == 0 {
 			r.log("firstFitJobs %d\n", i)
 		}
 
-		startTimeMin, startTimeMax, endTimeMin, endTimeMax := job.GetTimeRange()
+		startTimeMin, startTimeMax, endTimeMin, endTimeMax := job.GetTimeRange(scheduleStates)
 		deployed := false
 		for machineIndex, m := range machines {
 			if m.InstanceListCount > 0 {

@@ -6,9 +6,23 @@ type JobScheduleState struct {
 	EndTime   int
 }
 
+func NewJobScheduleState(r *ResourceManagement, jobs []*Job) (result []*JobScheduleState) {
+	result = make([]*JobScheduleState, len(r.JobConfigMap)+1)
+	for i := 0; i < len(result); i++ {
+		s := &JobScheduleState{}
+		s.StartTime = TimeSampleCount * 15
+		s.EndTime = 0
+		result[i] = s
+	}
+
+	for _, job := range jobs {
+		result[job.Config.JobId].Jobs = append(result[job.Config.JobId].Jobs, job)
+	}
+
+	return result
+}
+
 func (s *JobScheduleState) UpdateTime() {
-	s.StartTime = TimeSampleCount * 15
-	s.EndTime = 0
 	for _, job := range s.Jobs {
 		if job.StartMinutes == -1 {
 			continue
