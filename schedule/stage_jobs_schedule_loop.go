@@ -19,17 +19,60 @@ func (r *ResourceManagement) calcJobsMachineNeed(jobs []*Job) (count int) {
 	return count
 }
 
-func (r *ResourceManagement) bestFitJobs(machines []*Machine, jobs []*Job) (deploy map[*Job]int, restJobs []*Job) {
-	return nil, nil
+func (r *ResourceManagement) bestFitJobs(machines []*Machine, jobs []*Job) (ok bool, deploy map[*Job]int, restJobs []*Job) {
+	for i, job := range jobs {
+		if i > 0 && i%100 == 0 {
+			r.log("bestFitJobs %d\n", i)
+		}
+
+		min := TimeSampleCount * 15
+		var minMachine *Machine
+		startTimeMin, startTimeMax, endTimeMin, endTimeMax := job.GetTimeRange()
+		for _, m := range machines {
+			ok, startTime := m.CanFirstFitJob(job, startTimeMin, startTimeMax, endTimeMin, endTimeMax)
+			if !ok {
+				continue
+			}
+			if startTime < min {
+				min = startTime
+				minMachine = m
+			}
+		}
+		if minMachine == nil {
+			return false, nil, JobsCopy(jobs[i:])
+		}
+		job.SetStartMinutes(min)
+		minMachine.AddJob(job)
+	}
+
+	return true, nil, nil
 }
 
 func (r *ResourceManagement) jobsScheduleLoop(machines []*Machine) (err error) {
+	r.log("jobsScheduleLoop start")
+
 	//按照最早结束时间排序，FF插入
 	sort.Slice(r.JobList, func(i, j int) bool {
 		job1 := r.JobList[i]
 		job2 := r.JobList[j]
 		return job1.Config.EndTimeMin < job2.Config.EndTimeMin
 	})
+
+	ok, _, restJobs := r.bestFitJobs(machines[:800], r.JobList)
+	if !ok {
+		fmt.Printf("bestFitJobs failed restJobs=%d\n", len(restJobs))
+		panic("aaaa")
+	}
+
+	totalScore := float64(0)
+	for _, m := range machines {
+		if m.JobListCount > 0 {
+			totalScore += m.GetCpuCost()
+		}
+	}
+	r.log("jobsScheduleLoop totalScore=%f\n", totalScore)
+
+	return
 
 	machinesMap := make(map[int]*Machine)
 	for _, m := range machines {
@@ -43,8 +86,8 @@ func (r *ResourceManagement) jobsScheduleLoop(machines []*Machine) (err error) {
 
 	for {
 		tempMachines := MachinesClone(machines)
-		deploy, restJobs := r.bestFitJobs(tempMachines[:currentMachineCount], r.JobList)
-		if len(restJobs) == 0 {
+		ok, deploy, restJobs := r.bestFitJobs(tempMachines[:currentMachineCount], r.JobList)
+		if ok {
 			for job, machineId := range deploy {
 				fmt.Println(job, machineId)
 			}
