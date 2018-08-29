@@ -10,27 +10,8 @@ import (
 	"time"
 )
 
-func (r *ResourceManagement) buildJobDeployCommands(machines []*Machine) (commands []*JobDeployCommand) {
-	commands = make([]*JobDeployCommand, 0)
-	for _, m := range machines {
-		if m.JobListCount == 0 {
-			continue
-		}
-
-		for _, job := range m.JobList[:m.JobListCount] {
-			commands = append(commands, &JobDeployCommand{
-				JobId:        job.Config.RealJobId,
-				MachineId:    m.MachineId,
-				Count:        job.InstanceCount,
-				StartMinutes: job.StartMinutes,
-			})
-		}
-	}
-
-	return commands
-}
-
-func (r *ResourceManagement) output(instanceMoveCommands []*InstanceMoveCommand, jobDeployCommands []*JobDeployCommand) (err error) {
+func (r *ResourceManagement) output(
+	machines []*Machine, instanceMoveCommands []*InstanceMoveCommand, jobDeployCommands []*JobDeployCommand) (err error) {
 	//输出结果
 	outputFile := fmt.Sprintf(r.OutputDir+"/%s", time.Now().Format("20060102_150405"))
 	buf := bytes.NewBufferString("")
@@ -50,13 +31,13 @@ func (r *ResourceManagement) output(instanceMoveCommands []*InstanceMoveCommand,
 	}
 
 	//输出结果说明
-	costReal := r.CalcTotalScoreReal()
+	costReal := MachinesGetScoreReal(machines)
 	summaryBuf := bytes.NewBufferString("")
 	summaryBuf.WriteString(fmt.Sprintf("%f\n", costReal))
 	summaryBuf.WriteString(fmt.Sprintf("file=%s\n", outputFile))
 	summaryBuf.WriteString(fmt.Sprintf("machineCount=%d\n", r.DeployedMachineCount))
 	summaryBuf.WriteString(fmt.Sprintf("instanceMoveCommand=%d\n", len(instanceMoveCommands)))
-	summaryBuf.WriteString(fmt.Sprintf("cost=%f,realCost=%f\n", r.CalcTotalScore(), costReal))
+	summaryBuf.WriteString(fmt.Sprintf("cost=%f,realCost=%f\n", MachinesGetScore(machines), costReal))
 	err = ioutil.WriteFile(outputFile+"_summary.csv", summaryBuf.Bytes(), os.ModePerm)
 	if err != nil {
 		return err
@@ -99,48 +80,4 @@ func (r *ResourceManagement) output(instanceMoveCommands []*InstanceMoveCommand,
 	}
 
 	return nil
-}
-
-func (r *ResourceManagement) mergeOutput() (err error) {
-	r.log("mergeOutput start\n")
-
-	r.beginOffline()
-
-	//todo 这里需要考虑在线迁移时的实例交换,改为从初始状态迁移后再部署任务
-	machines := MachinesClone(r.MachineList)
-
-	for _, m := range machines {
-		m.beginOffline()
-	}
-
-	totalScore := float64(0)
-	for _, m := range machines {
-		totalScore += m.GetCpuCost()
-	}
-	r.log("mergeOutput init totalScore=%f\n", totalScore)
-
-	err = r.jobsScheduleLoop(machines)
-	if err != nil {
-		return err
-	}
-
-	totalScore = float64(0)
-	for _, m := range machines {
-		totalScore += m.GetCpuCost()
-	}
-	r.log("mergeOutput firstFitJobs totalScore=%f\n", totalScore)
-
-	instanceMoveCommands, err := NewOnlineMerge(r).Run()
-	if err != nil {
-		return err
-	}
-
-	jobDeployCommands := r.buildJobDeployCommands(machines)
-
-	err = NewReplay(r, instanceMoveCommands, jobDeployCommands).Run(machines)
-	if err != nil {
-		return nil
-	}
-
-	return r.output(instanceMoveCommands, jobDeployCommands)
 }

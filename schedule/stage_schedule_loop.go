@@ -124,10 +124,10 @@ func (r *ResourceManagement) scheduleLoop() {
 		r.DeployedMachineCount = 8000
 	}
 
-	startCost := r.CalcTotalScore()
+	startCost := MachinesGetScore(r.MachineList)
 	totalLoop := 0
 	for scaleCount := 0; ; scaleCount++ {
-		r.log("scheduleLoop scale=%2d start cost=%f\n", scaleCount, r.CalcTotalScore())
+		r.log("scheduleLoop scale=%2d start cost=%f\n", scaleCount, MachinesGetScore(r.MachineList))
 		pTableBigSmall := randBigSmall(r.DeployedMachineCount)
 		pTableSmallBig := randSmallBig(r.DeployedMachineCount)
 		loop := 0
@@ -135,16 +135,18 @@ func (r *ResourceManagement) scheduleLoop() {
 		stop := false
 		for ; ; loop++ {
 			if r.Dataset == "e" {
-				if totalLoop > 0 && totalLoop%256 == 0 {
-					err := r.mergeOutput()
+				if totalLoop > 0 && totalLoop%128 == 0 {
+					err := r.jobSchedule()
 					if err != nil {
 						r.log("scheduleLoop failed scale=%2d dead loop=%8d,totalLoop=%8d,%s\n",
 							scaleCount, deadLoop, totalLoop, err.Error())
+						stop = true
+						break
 					}
 				}
 			} else {
-				if totalLoop > 0 && totalLoop%2048 == 1 {
-					err := r.mergeOutput()
+				if totalLoop > 0 && totalLoop%2048 == 0 {
+					err := r.jobSchedule()
 					if err != nil {
 						r.log("scheduleLoop failed scale=%2d dead loop=%8d,totalLoop=%8d,%s\n",
 							scaleCount, deadLoop, totalLoop, err.Error())
@@ -166,7 +168,7 @@ func (r *ResourceManagement) scheduleLoop() {
 			}
 
 			deadLoop = 0
-			currentCost := r.CalcTotalScore()
+			currentCost := MachinesGetScore(r.MachineList)
 			r.log("scheduleLoop scale=%2d loop=%8d,totalLoop=%8d %d %f %f\n",
 				scaleCount, loop, totalLoop, r.DeployedMachineCount, startCost, currentCost)
 
@@ -187,5 +189,5 @@ func (r *ResourceManagement) scheduleLoop() {
 	}
 
 	r.log("scheduleLoop end  deployMachineCount=%d,totalLoop=%8d %f\n",
-		r.DeployedMachineCount, totalLoop, r.CalcTotalScore())
+		r.DeployedMachineCount, totalLoop, MachinesGetScore(r.MachineList))
 }

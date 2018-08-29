@@ -41,7 +41,6 @@ type JobConfig struct {
 	EndTimeMax              int
 	TimeRangeMinInitialized bool
 	TimeRangeMaxInitialized bool
-	State                   *JobCommonState //相同配置的任务实例共享的时间状态
 }
 
 //任务打包部署

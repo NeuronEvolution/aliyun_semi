@@ -2,31 +2,6 @@ package schedule
 
 import "fmt"
 
-type JobCommonState struct {
-	Jobs      []*Job
-	StartTime int
-	EndTime   int
-}
-
-func (s *JobCommonState) UpdateTime() {
-	s.StartTime = TimeSampleCount * 15
-	s.EndTime = 0
-	for _, job := range s.Jobs {
-		if job.StartMinutes == -1 {
-			continue
-		}
-
-		if job.StartMinutes < s.StartTime {
-			s.StartTime = job.StartMinutes
-		}
-
-		endTime := job.StartMinutes + job.Config.ExecMinutes
-		if endTime > s.EndTime {
-			s.EndTime = endTime
-		}
-	}
-}
-
 type Job struct {
 	R             *ResourceManagement
 	JobInstanceId int
@@ -94,7 +69,7 @@ func (job *Job) GetTimeRange(scheduleState []*JobScheduleState) (
 
 func (job *Job) DebugPrint() {
 	fmt.Printf("Job cpu=%f,mem=%f,instanceCount=%d,t=%d,"+
-		"startTimeMin=%d,startTimeMax=%d,starttime=%d,endTime=%d\n",
+		"startTimeMin=%d,startTimeMax=%d\n",
 		job.Cpu, job.Mem, job.InstanceCount, job.StartMinutes,
-		job.Config.StartTimeMin, job.Config.StartTimeMax, job.Config.State.StartTime, job.Config.State.EndTime)
+		job.Config.StartTimeMin, job.Config.StartTimeMax)
 }

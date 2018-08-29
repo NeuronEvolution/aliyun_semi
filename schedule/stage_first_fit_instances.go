@@ -40,7 +40,8 @@ func (r *ResourceManagement) firstFitInstances() (err error) {
 		}
 	}
 
-	r.log("firstFitInstances deployedMachineCount=%d,score=%f\n", r.DeployedMachineCount, r.CalcTotalScore())
+	r.log("firstFitInstances deployedMachineCount=%d,score=%f\n",
+		r.DeployedMachineCount, MachinesGetScore(r.MachineList))
 
 	return nil
 }

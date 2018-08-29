@@ -49,7 +49,7 @@ func MachinesGetInstances(machines []*Machine) (instances []*Instance) {
 	return instances
 }
 
-func MachinesClone(p []*Machine) (r []*Machine) {
+func MachinesCloneWithInstances(p []*Machine) (r []*Machine) {
 	r = make([]*Machine, len(p))
 	for i, m := range p {
 		machine := NewMachine(m.R, m.MachineId, m.Config)
@@ -57,7 +57,28 @@ func MachinesClone(p []*Machine) (r []*Machine) {
 		for _, instance := range instances {
 			machine.AddInstance(instance)
 		}
+		machine.beginOffline()
 		r[i] = machine
 	}
 	return r
+}
+
+func MachinesGetScore(machines []*Machine) (totalScore float64) {
+	for _, m := range machines {
+		if m.InstanceListCount > 0 || m.JobListCount > 0 {
+			totalScore += m.GetCpuCost()
+		}
+	}
+
+	return totalScore
+}
+
+func MachinesGetScoreReal(machines []*Machine) (totalScore float64) {
+	for _, m := range machines {
+		if m.InstanceListCount > 0 || m.JobListCount > 0 {
+			totalScore += m.GetCpuCostReal()
+		}
+	}
+
+	return totalScore
 }

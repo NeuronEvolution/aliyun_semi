@@ -121,9 +121,6 @@ func (r *ResourceManagement) createJobs() {
 			continue
 		}
 
-		config.State = &JobCommonState{}
-		config.State.UpdateTime()
-
 		rest := config.InstanceCount
 		packCount := config.getPackCount()
 		for {
@@ -137,7 +134,6 @@ func (r *ResourceManagement) createJobs() {
 			r.JobList = append(r.JobList, job)
 			r.JobMap = append(r.JobMap, job)
 			r.MaxJobInstanceId = currentJobInstanceId
-			config.State.Jobs = append(config.State.Jobs, job)
 
 			rest -= packCount
 			if rest <= 0 {
@@ -171,24 +167,6 @@ func (r *ResourceManagement) init() (err error) {
 	return nil
 }
 
-func (r *ResourceManagement) CalcTotalScore() float64 {
-	score := float64(0)
-	for _, m := range r.MachineList[:r.DeployedMachineCount] {
-		score += m.GetCpuCost()
-	}
-
-	return score
-}
-
-func (r *ResourceManagement) CalcTotalScoreReal() float64 {
-	score := float64(0)
-	for _, m := range r.MachineList[:r.DeployedMachineCount] {
-		score += m.GetCpuCostReal()
-	}
-
-	return score
-}
-
 func (r *ResourceManagement) initE() (err error) {
 	r.DeployedMachineCount = 8000
 	for _, config := range r.InstanceDeployConfigList {
@@ -216,7 +194,7 @@ func (r *ResourceManagement) Run() (err error) {
 	r.DeployMap = make([]*Machine, r.MaxInstanceId+1)
 	r.JobDeployMap = make([]*Machine, r.MaxJobInstanceId+1)
 
-	return r.jobsScheduleLoop(r.MachineList)
+	//return NewJobScheduler(r, r.MachineList).Run()
 
 	//初始化部署实例
 	if r.Dataset == "e" {
