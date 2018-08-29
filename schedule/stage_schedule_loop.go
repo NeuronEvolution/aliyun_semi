@@ -143,7 +143,7 @@ func (r *ResourceManagement) scheduleLoop() {
 					}
 				}
 			} else {
-				if totalLoop > 0 && totalLoop%2048 == 0 {
+				if totalLoop > 0 && totalLoop%2048 == 1 {
 					err := r.mergeOutput()
 					if err != nil {
 						r.log("scheduleLoop failed scale=%2d dead loop=%8d,totalLoop=%8d,%s\n",

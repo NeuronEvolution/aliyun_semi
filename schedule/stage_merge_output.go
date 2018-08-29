@@ -119,7 +119,7 @@ func (r *ResourceManagement) mergeOutput() (err error) {
 	}
 	r.log("mergeOutput init totalScore=%f\n", totalScore)
 
-	err = r.firstFitJobs(machines)
+	err = r.jobsScheduleLoop(machines)
 	if err != nil {
 		return err
 	}

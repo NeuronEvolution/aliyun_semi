@@ -22,7 +22,7 @@ func (r *ResourceManagement) calcJobsMachineNeed(jobs []*Job) (count int) {
 func (r *ResourceManagement) bestFitJobs(machines []*Machine, jobs []*Job, scheduleState []*JobScheduleState) (
 	ok bool, deploy map[*Job]int, restJobs []*Job) {
 	for i, job := range jobs {
-		if i > 0 && i%100 == 0 {
+		if i > 0 && i%1000 == 0 {
 			r.log("bestFitJobs %d\n", i)
 		}
 
@@ -51,20 +51,24 @@ func (r *ResourceManagement) bestFitJobs(machines []*Machine, jobs []*Job, sched
 }
 
 func (r *ResourceManagement) jobsScheduleLoop(machines []*Machine) (err error) {
-	r.log("jobsScheduleLoop start")
+	r.log("jobsScheduleLoop start\n")
 
 	//按照最早结束时间排序，FF插入
 	sort.Slice(r.JobList, func(i, j int) bool {
 		job1 := r.JobList[i]
 		job2 := r.JobList[j]
-		return job1.Config.EndTimeMin < job2.Config.EndTimeMin
+		if job1.Config.EndTimeMin == job2.Config.EndTimeMin {
+			return job1.Cpu*float64(job1.Config.ExecMinutes) > job2.Cpu*float64(job1.Config.ExecMinutes)
+		} else {
+			return job1.Config.EndTimeMin < job2.Config.EndTimeMin
+		}
 	})
 
 	scheduleState := NewJobScheduleState(r, r.JobList)
 	for _, job := range r.JobList {
 		job.StartMinutes = -1
 	}
-	ok, _, restJobs := r.bestFitJobs(machines[:800], r.JobList, scheduleState)
+	ok, _, restJobs := r.bestFitJobs(machines[:r.DeployedMachineCount+772], r.JobList, scheduleState)
 	if !ok {
 		fmt.Printf("bestFitJobs failed restJobs=%d\n", len(restJobs))
 		panic("aaaa")
