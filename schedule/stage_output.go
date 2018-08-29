@@ -30,13 +30,30 @@ func (r *ResourceManagement) output(
 		return err
 	}
 
+	totalMachineCount := 0
+	for _, m := range machines {
+		if m.InstanceListCount > 0 || m.JobListCount > 0 {
+			totalMachineCount++
+		}
+	}
+
+	totalJobCount := 0
+	for _, config := range r.JobConfigMap {
+		if config != nil {
+			totalJobCount += config.InstanceCount
+		}
+	}
+
 	//输出结果说明
 	costReal := MachinesGetScoreReal(machines)
 	summaryBuf := bytes.NewBufferString("")
 	summaryBuf.WriteString(fmt.Sprintf("%f\n", costReal))
 	summaryBuf.WriteString(fmt.Sprintf("file=%s\n", outputFile))
-	summaryBuf.WriteString(fmt.Sprintf("machineCount=%d\n", r.DeployedMachineCount))
+	summaryBuf.WriteString(fmt.Sprintf("instanceMachineCount=%d,totalMachineCount=%d\n",
+		r.DeployedMachineCount, totalMachineCount))
 	summaryBuf.WriteString(fmt.Sprintf("instanceMoveCommand=%d\n", len(instanceMoveCommands)))
+	summaryBuf.WriteString(fmt.Sprintf("jobDeployCommands=%d,totalJobCount=%d\n",
+		len(jobDeployCommands), totalJobCount))
 	summaryBuf.WriteString(fmt.Sprintf("cost=%f,realCost=%f\n", MachinesGetScore(machines), costReal))
 	err = ioutil.WriteFile(outputFile+"_summary.csv", summaryBuf.Bytes(), os.ModePerm)
 	if err != nil {
