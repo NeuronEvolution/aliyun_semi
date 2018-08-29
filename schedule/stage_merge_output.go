@@ -107,15 +107,7 @@ func (r *ResourceManagement) mergeOutput() (err error) {
 	r.beginOffline()
 
 	//todo 这里需要考虑在线迁移时的实例交换,改为从初始状态迁移后再部署任务
-	machines := make([]*Machine, len(r.MachineList))
-	for i, m := range r.MachineList {
-		machine := NewMachine(m.R, m.MachineId, m.Config)
-		instances := InstancesCopy(m.InstanceList[:m.InstanceListCount])
-		for _, instance := range instances {
-			machine.AddInstance(instance)
-		}
-		machines[i] = machine
-	}
+	machines := MachinesClone(r.MachineList)
 
 	for _, m := range machines {
 		m.beginOffline()

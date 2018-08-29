@@ -12,6 +12,7 @@ func (r *ResourceManagement) firstFitJobs(machines []*Machine) (err error) {
 		job2 := r.JobList[j]
 		return job1.Config.EndTimeMin < job2.Config.EndTimeMin
 	})
+
 	for i, job := range r.JobList {
 		if i > 0 && i%1000 == 0 {
 			r.log("firstFitJobs %d\n", i)

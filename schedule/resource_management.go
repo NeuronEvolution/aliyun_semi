@@ -216,6 +216,8 @@ func (r *ResourceManagement) Run() (err error) {
 	r.DeployMap = make([]*Machine, r.MaxInstanceId+1)
 	r.JobDeployMap = make([]*Machine, r.MaxJobInstanceId+1)
 
+	return r.firstFitJobs(r.MachineList)
+
 	//初始化部署实例
 	if r.Dataset == "e" {
 		err = r.initE()

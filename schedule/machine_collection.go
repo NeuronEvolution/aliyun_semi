@@ -48,3 +48,16 @@ func MachinesGetInstances(machines []*Machine) (instances []*Instance) {
 	}
 	return instances
 }
+
+func MachinesClone(p []*Machine) (r []*Machine) {
+	r = make([]*Machine, len(p))
+	for i, m := range p {
+		machine := NewMachine(m.R, m.MachineId, m.Config)
+		instances := InstancesCopy(m.InstanceList[:m.InstanceListCount])
+		for _, instance := range instances {
+			machine.AddInstance(instance)
+		}
+		r[i] = machine
+	}
+	return r
+}
