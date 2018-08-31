@@ -3,6 +3,7 @@ package schedule
 import (
 	"fmt"
 	"sort"
+	"sync"
 )
 
 type JobScheduler struct {
@@ -16,6 +17,61 @@ func NewJobScheduler(r *ResourceManagement, machines []*Machine) (s *JobSchedule
 	s.Machines = machines
 
 	return s
+}
+
+func (s *JobScheduler) bestFit(
+	machines []*Machine, job *Job, scheduleState []*JobScheduleState) (
+	minStartMinutes int, minMachine *Machine) {
+
+	minStartMinutes = TimeSampleCount * 15
+	startTimeMin, startTimeMax, endTimeMin, endTimeMax := job.GetTimeRange(scheduleState)
+	for _, m := range machines {
+		ok, startTime := m.CanFirstFitJob(job, startTimeMin, startTimeMax, endTimeMin, endTimeMax)
+		if !ok {
+			continue
+		}
+		if startTime < minStartMinutes {
+			minStartMinutes = startTime
+			minMachine = m
+		}
+	}
+
+	return minStartMinutes, minMachine
+}
+
+func (s *JobScheduler) parallelBestFit(
+	machines []*Machine, job *Job, scheduleState []*JobScheduleState) (
+	minStartMinutes int, minMachine *Machine) {
+
+	const parallelCount = ParallelCpuCount * 2
+	var minStartMinutesList [parallelCount]int
+	for i := 0; i < parallelCount; i++ {
+		minStartMinutesList[i] = TimeSampleCount * 15
+	}
+	var minMachineList [parallelCount]*Machine
+
+	size := len(machines) / parallelCount
+	wg := &sync.WaitGroup{}
+	for i := 0; i < parallelCount; i++ {
+		start := i * size
+		count := size
+		if i == parallelCount-1 {
+			count = len(machines) - start
+		}
+		wg.Add(1)
+		go func(index int, subMachines []*Machine) {
+			minStartMinutesList[i], minMachineList[i] = s.bestFit(subMachines, job, scheduleState)
+		}(i, machines[start:count])
+	}
+
+	for i, v := range minStartMinutesList {
+		if v < minStartMinutes {
+			minStartMinutes = v
+			minMachine = minMachineList[i]
+		}
+	}
+
+	return minStartMinutes, minMachine
 }
 
 func (s *JobScheduler) bestFitJobs(machines []*Machine, jobs []*Job) (result []*Machine, err error) {
@@ -34,19 +90,7 @@ func (s *JobScheduler) bestFitJobs(machines []*Machine, jobs []*Job) (result []*
 			s.R.log("bestFitJobs %d\n", i)
 		}
 
-		minStartMinutes := TimeSampleCount * 15
-		var minMachine *Machine
-		startTimeMin, startTimeMax, endTimeMin, endTimeMax := job.GetTimeRange(scheduleState)
-		for _, m := range result {
-			ok, startTime := m.CanFirstFitJob(job, startTimeMin, startTimeMax, endTimeMin, endTimeMax)
-			if !ok {
-				continue
-			}
-			if startTime < minStartMinutes {
-				minStartMinutes = startTime
-				minMachine = m
-			}
-		}
+		minStartMinutes, minMachine := s.bestFit(result, job, scheduleState)
 		if minMachine == nil {
 			return nil, fmt.Errorf("bestFitJobs failed")
 		}
