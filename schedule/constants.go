@@ -16,6 +16,7 @@ const MaxJobPerMachine = 4096
 const MaxCpuRatio = float64(0.5)
 const ConstraintE = float64(0.0000001)
 const MaxJobExecMinutes = 144
+const ParallelCpuCount = 6
 
 //92,288,2457,7,7,9
 const HighCpu = 92

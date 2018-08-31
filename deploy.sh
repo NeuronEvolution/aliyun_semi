@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
+ALIYUN_IP=${ALIYUN_IP}
+
 cd cmd
 
 GOOS=linux GOARCH=amd64 go build -o aliyun .
-scp aliyun root@106.14.204.11:~/aliyun_semi/
+scp aliyun root@${ALIYUN_IP}:~/aliyun_semi/

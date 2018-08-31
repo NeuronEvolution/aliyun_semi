@@ -23,10 +23,10 @@ func (s *JobScheduler) bestFitJobs(machines []*Machine, jobs []*Job) (result []*
 	result = MachinesCloneWithInstances(machines)
 
 	//调度状态
+	scheduleState := NewJobScheduleState(s.R, s.R.JobList)
 	for _, job := range s.R.JobList {
 		job.StartMinutes = -1
 	}
-	scheduleStateManager := NewJobScheduleStateManager(s.R, s.R.JobList)
 
 	//BFD
 	for i, job := range jobs {
@@ -34,29 +34,24 @@ func (s *JobScheduler) bestFitJobs(machines []*Machine, jobs []*Job) (result []*
 			s.R.log("bestFitJobs %d\n", i)
 		}
 
-		min := TimeSampleCount * 15
+		minStartMinutes := TimeSampleCount * 15
 		var minMachine *Machine
-		jobState := scheduleStateManager.States[job.Config.JobId]
+		startTimeMin, startTimeMax, endTimeMin, endTimeMax := job.GetTimeRange(scheduleState)
 		for _, m := range result {
-			ok, startTime := m.CanFirstFitJob(
-				job,
-				jobState.StartTimeMin,
-				jobState.StartTimeMax,
-				jobState.EndTimeMin,
-				jobState.EndTimeMax)
+			ok, startTime := m.CanFirstFitJob(job, startTimeMin, startTimeMax, endTimeMin, endTimeMax)
 			if !ok {
 				continue
 			}
-			if startTime < min {
-				min = startTime
+			if startTime < minStartMinutes {
+				minStartMinutes = startTime
 				minMachine = m
 			}
 		}
 		if minMachine == nil {
 			return nil, fmt.Errorf("bestFitJobs failed")
 		}
-		job.StartMinutes = min
-		scheduleStateManager.UpdateTime(job)
+		job.StartMinutes = minStartMinutes
+		scheduleState[job.Config.JobId].UpdateTime()
 		minMachine.AddJob(job)
 	}
 
