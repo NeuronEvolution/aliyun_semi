@@ -56,7 +56,7 @@ func (r *ResourceManagement) RandomBest(machines []*Machine, instances []*Instan
 
 func (r *ResourceManagement) Best(machines []*Machine, instances []*Instance, deadLoop int) (bestPos []int, bestCost float64) {
 	if deadLoop == 0 && r.Dataset != "e" {
-		return r.RandomBest(machines, instances)
+		//return r.RandomBest(machines, instances)
 	}
 
 	e := deadLoop

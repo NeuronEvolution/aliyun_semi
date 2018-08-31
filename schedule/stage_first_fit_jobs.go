@@ -13,22 +13,27 @@ func (r *ResourceManagement) firstFitJobs(machines []*Machine) (err error) {
 		return job1.Config.EndTimeMin < job2.Config.EndTimeMin
 	})
 
-	scheduleStates := NewJobScheduleState(r, r.JobList)
+	stateManager := NewJobScheduleStateManager(r, r.JobList)
 
 	for i, job := range r.JobList {
 		if i > 0 && i%1000 == 0 {
 			r.log("firstFitJobs %d\n", i)
 		}
 
-		startTimeMin, startTimeMax, endTimeMin, endTimeMax := job.GetTimeRange(scheduleStates)
+		jobState := stateManager.States[job.Config.JobId]
 		deployed := false
 		for machineIndex, m := range machines {
 			if m.InstanceListCount > 0 {
 				continue
 			}
-			ok, startMinutes := m.CanFirstFitJob(job, startTimeMin, startTimeMax, endTimeMin, endTimeMax)
+			ok, startMinutes := m.CanFirstFitJob(
+				job,
+				jobState.StartTimeMin,
+				jobState.StartTimeMax,
+				jobState.EndTimeMin,
+				jobState.EndTimeMax)
 			if ok {
-				job.SetStartMinutes(startMinutes)
+				job.StartMinutes = startMinutes
 				m.AddJob(job)
 				r.JobDeployMap[job.JobInstanceId] = m
 				//更新部署数量

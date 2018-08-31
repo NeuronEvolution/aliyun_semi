@@ -143,18 +143,7 @@ func (r *ResourceManagement) scheduleLoop() {
 							scaleCount, deadLoop, totalLoop, err.Error())
 					}
 				}
-			} else {
-				if totalLoop > 0 && totalLoop%2048 == 0 {
-					err := r.jobSchedule()
-					if err != nil {
-						r.log("scheduleLoop failed scale=%2d dead loop=%8d,totalLoop=%8d,%s\n",
-							scaleCount, deadLoop, totalLoop, err.Error())
-					}
-					stop = true
-					break
-				}
 			}
-
 			totalLoop++
 
 			SortMachineByCpuCost(r.MachineList[:r.DeployedMachineCount])
@@ -172,6 +161,17 @@ func (r *ResourceManagement) scheduleLoop() {
 				scaleCount, loop, totalLoop, r.DeployedMachineCount, startCost, currentCost)
 
 			if loop >= ScaleBase*int(math.Pow(ScaleRatio, float64(scaleCount))) {
+				//4=511,6=1023,8=2045,10=4089
+				if r.Dataset != "e" && scaleCount == 1 {
+					err := r.jobSchedule()
+					if err != nil {
+						r.log("scheduleLoop failed scale=%2d dead loop=%8d,totalLoop=%8d,%s\n",
+							scaleCount, deadLoop, totalLoop, err.Error())
+					}
+					stop = true
+					break
+				}
+
 				machineCountAllocate := r.checkScale()
 				if machineCountAllocate > 0 {
 					r.DeployedMachineCount += machineCountAllocate

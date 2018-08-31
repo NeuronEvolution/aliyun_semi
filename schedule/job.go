@@ -26,10 +26,6 @@ func NewJob(r *ResourceManagement, jobInstanceId int, config *JobConfig, instanc
 	return job
 }
 
-func (job *Job) SetStartMinutes(t int) {
-	job.StartMinutes = t
-}
-
 func (job *Job) GetTimeRange(scheduleState []*JobScheduleState) (
 	startTimeMin int, startTimeMax int, endTimeMin int, endTimeMax int) {
 	c := job.Config
