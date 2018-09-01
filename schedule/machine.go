@@ -265,7 +265,7 @@ func (m *Machine) CanFirstFitJob(job *Job, startTimeMin int, startTimeMax int, e
 	//	m.MachineId, job.JobInstanceId, job.Config.ExecMinutes, startTimeMin, startTimeMax, endTimeMin, endTimeMax)
 	cpuRatio := float64(1)
 	if m.InstanceListCount > 0 {
-		cpuRatio = 0.5
+		cpuRatio = 0.5 //+ 0.1/float64(m.InstanceListCount)
 	} else {
 		cpuRatio = 1
 	}

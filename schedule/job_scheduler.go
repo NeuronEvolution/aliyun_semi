@@ -2,6 +2,7 @@ package schedule
 
 import (
 	"fmt"
+	"math"
 	"sort"
 	"sync"
 )
@@ -43,6 +44,8 @@ func (s *JobScheduler) parallelBestFit(
 	machines []*Machine, job *Job, scheduleState []*JobScheduleState) (
 	minStartMinutes int, minMachine *Machine) {
 
+	minStartMinutes = TimeSampleCount * 15
+
 	const parallelCount = ParallelCpuCount * 2
 	var minStartMinutesList [parallelCount]int
 	for i := 0; i < parallelCount; i++ {
@@ -60,9 +63,11 @@ func (s *JobScheduler) parallelBestFit(
 		}
 		wg.Add(1)
 		go func(index int, subMachines []*Machine) {
-			minStartMinutesList[i], minMachineList[i] = s.bestFit(subMachines, job, scheduleState)
-		}(i, machines[start:count])
+			defer wg.Done()
+			minStartMinutesList[index], minMachineList[index] = s.bestFit(subMachines, job, scheduleState)
+		}(i, machines[start:start+count])
 	}
+	wg.Wait()
 
 	for i, v := range minStartMinutesList {
 		if v < minStartMinutes {
@@ -90,7 +95,7 @@ func (s *JobScheduler) bestFitJobs(machines []*Machine, jobs []*Job) (result []*
 			s.R.log("bestFitJobs %d\n", i)
 		}
 
-		minStartMinutes, minMachine := s.bestFit(result, job, scheduleState)
+		minStartMinutes, minMachine := s.parallelBestFit(result, job, scheduleState)
 		if minMachine == nil {
 			return nil, fmt.Errorf("bestFitJobs failed")
 		}
@@ -112,10 +117,18 @@ func (s *JobScheduler) Run() (err error) {
 	sort.Slice(s.R.JobList, func(i, j int) bool {
 		job1 := s.R.JobList[i]
 		job2 := s.R.JobList[j]
-		if job1.Config.EndTimeMin == job2.Config.EndTimeMin {
-			return job1.Cpu*float64(job1.Config.ExecMinutes) > job2.Cpu*float64(job1.Config.ExecMinutes)
+
+		if job1.Config.isParentOf(job2.Config) {
+			return true
+		} else if job1.Config.isChildOf(job2.Config) {
+			return false
 		} else {
-			return job1.Config.EndTimeMin < job2.Config.EndTimeMin
+			if math.Abs(float64(job1.Config.EndTimeMin-job2.Config.EndTimeMin)) < 16 {
+				//return job1.Config.ExecMinutes > job2.Config.ExecMinutes
+				return job1.Cpu*float64(job1.Config.ExecMinutes) > job2.Cpu*float64(job2.Config.ExecMinutes)
+			} else {
+				return job1.Config.EndTimeMin < job2.Config.EndTimeMin
+			}
 		}
 	})
 

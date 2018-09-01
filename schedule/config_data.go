@@ -68,3 +68,23 @@ func (c *JobConfig) getPackCount() (count int) {
 
 	return count
 }
+
+func (c *JobConfig) isParentOf(p *JobConfig) bool {
+	for _, v := range c.Children {
+		if v == p {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (c *JobConfig) isChildOf(p *JobConfig) bool {
+	for _, v := range c.Parents {
+		if v == p {
+			return true
+		}
+	}
+
+	return false
+}
