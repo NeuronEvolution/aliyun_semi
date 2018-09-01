@@ -23,9 +23,6 @@ func (r *ResourceManagement) firstFitJobs(machines []*Machine) (err error) {
 		startTimeMin, startTimeMax, endTimeMin, endTimeMax := job.GetTimeRange(scheduleStates)
 		deployed := false
 		for machineIndex, m := range machines {
-			if m.InstanceListCount > 0 {
-				continue
-			}
 			ok, startMinutes := m.CanFirstFitJob(job, startTimeMin, startTimeMax, endTimeMin, endTimeMax)
 			if ok {
 				job.StartMinutes = startMinutes
@@ -45,12 +42,7 @@ func (r *ResourceManagement) firstFitJobs(machines []*Machine) (err error) {
 		}
 	}
 
-	totalScore := float64(0)
-	for _, m := range machines[:r.DeployedMachineCount] {
-		totalScore += m.GetCpuCostReal()
-	}
-
-	r.log("firstFitJobs deployedMachineCount=%d,score=%f\n", r.DeployedMachineCount, totalScore)
+	r.log("firstFitJobs deployedMachineCount=%d,score=%f\n", r.DeployedMachineCount, MachinesGetScore(machines))
 
 	return nil
 }

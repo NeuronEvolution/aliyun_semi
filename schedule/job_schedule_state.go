@@ -16,6 +16,7 @@ func NewJobScheduleState(r *ResourceManagement, jobs []*Job) (result []*JobSched
 	}
 
 	for _, job := range jobs {
+		job.StartMinutes = -1
 		result[job.Config.JobId].Jobs = append(result[job.Config.JobId].Jobs, job)
 	}
 

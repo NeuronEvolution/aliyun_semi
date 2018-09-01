@@ -26,6 +26,10 @@ func (s *JobScheduler) bestFit(
 
 	minStartMinutes = TimeSampleCount * 15
 	startTimeMin, startTimeMax, endTimeMin, endTimeMax := job.GetTimeRange(scheduleState)
+	//startTimeMin = 0
+	//startTimeMax = TimeSampleCount*15 - job.Config.ExecMinutes
+	//endTimeMax = TimeSampleCount * 15
+	//endTimeMin = job.Config.ExecMinutes
 	for _, m := range machines {
 		ok, startTime := m.CanFirstFitJob(job, startTimeMin, startTimeMax, endTimeMin, endTimeMax)
 		if !ok {
@@ -85,9 +89,6 @@ func (s *JobScheduler) bestFitJobs(machines []*Machine, jobs []*Job) (result []*
 
 	//调度状态
 	scheduleState := NewJobScheduleState(s.R, s.R.JobList)
-	for _, job := range s.R.JobList {
-		job.StartMinutes = -1
-	}
 
 	//BFD
 	for i, job := range jobs {
@@ -103,6 +104,20 @@ func (s *JobScheduler) bestFitJobs(machines []*Machine, jobs []*Job) (result []*
 		scheduleState[job.Config.JobId].UpdateTime()
 		minMachine.AddJob(job)
 	}
+
+	jobWithInstanceCount := 0
+	totalScore := float64(0)
+	for _, m := range result {
+		if m.InstanceListCount > 0 || m.JobListCount > 0 {
+			totalScore += m.GetCpuCost()
+		}
+
+		if m.InstanceListCount > 0 {
+			jobWithInstanceCount += m.JobListCount
+		}
+	}
+	s.R.log("bestFitJobs totalScore=%f,jobWithInstanceCount=%d,machineCount=%d\n",
+		totalScore, jobWithInstanceCount, len(result))
 
 	return result, nil
 }
@@ -123,9 +138,13 @@ func (s *JobScheduler) Run() (err error) {
 		} else if job1.Config.isChildOf(job2.Config) {
 			return false
 		} else {
-			if math.Abs(float64(job1.Config.EndTimeMin-job2.Config.EndTimeMin)) < 16 {
+			//return job1.Config.ExecMinutes > job2.Config.ExecMinutes
+
+			if math.Abs(float64(job1.Config.EndTimeMin-job2.Config.EndTimeMin)) < 8 {
 				//return job1.Config.ExecMinutes > job2.Config.ExecMinutes
-				return job1.Cpu*float64(job1.Config.ExecMinutes) > job2.Cpu*float64(job2.Config.ExecMinutes)
+				//	return job1.Cpu > job2.Cpu
+				return job1.Config.ExecMinutes > job2.Config.ExecMinutes
+				//return job1.Cpu*float64(job1.Config.ExecMinutes) > job2.Cpu*float64(job2.Config.ExecMinutes)
 			} else {
 				return job1.Config.EndTimeMin < job2.Config.EndTimeMin
 			}
@@ -134,10 +153,11 @@ func (s *JobScheduler) Run() (err error) {
 
 	var lastResult []*Machine
 	lastSucceed := false
-	scaleCurrent := s.R.DeployedMachineCount
+
 	scaleUp := true
 	scaleDividing := false
 	scaleStep := 512
+	scaleCurrent := s.R.DeployedMachineCount - scaleStep
 	machineCount := 0
 	for {
 		//如果已经开始二分搜索，区间大小减半

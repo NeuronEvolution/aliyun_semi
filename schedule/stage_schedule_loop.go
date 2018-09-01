@@ -120,10 +120,16 @@ func (r *ResourceManagement) checkScale() (machineCountAllocate int) {
 }
 
 func (r *ResourceManagement) scheduleLoop() {
-	if r.Dataset == "e" {
+	if r.Dataset == "a" {
+		r.DeployedMachineCount = 4600
+	} else if r.Dataset == "b" {
+
+	} else if r.Dataset == "c" {
+
+	} else if r.Dataset == "d" {
+
+	} else if r.Dataset == "e" {
 		r.DeployedMachineCount = 8000
-	} else if r.Dataset == "a" {
-		r.DeployedMachineCount = 4300
 	}
 
 	startCost := MachinesGetScore(r.MachineList)
@@ -163,7 +169,10 @@ func (r *ResourceManagement) scheduleLoop() {
 				scaleCount, loop, totalLoop, r.DeployedMachineCount, startCost, currentCost)
 			if loop >= int(float64(ScaleBase)*math.Pow(ScaleRatio, float64(scaleCount))) {
 				//4=511,6=1023,8=2045,10=4089
-				if r.Dataset != "e" && scaleCount == 10 {
+				if (r.Dataset == "a" && scaleCount == 0) ||
+					(r.Dataset == "b" && scaleCount == 16) ||
+					(r.Dataset == "c" && scaleCount == 32) ||
+					(r.Dataset == "d" && scaleCount == 32) {
 					err := r.jobSchedule()
 					if err != nil {
 						r.log("scheduleLoop failed scale=%2d dead loop=%8d,totalLoop=%8d,%s\n",

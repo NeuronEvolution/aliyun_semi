@@ -66,6 +66,10 @@ func (c *JobConfig) getPackCount() (count int) {
 		count = memCount
 	}
 
+	if c.ExecMinutes < 32 {
+		//count = 1
+	}
+
 	return count
 }
 

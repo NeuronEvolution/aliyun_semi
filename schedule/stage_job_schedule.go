@@ -35,6 +35,7 @@ func (r *ResourceManagement) jobSchedule() (err error) {
 	r.log("jobSchedule init totalScore=%f\n", MachinesGetScore(machines))
 
 	//任务调度
+	//err = r.firstFitJobs(machines)
 	err = NewJobScheduler(r, machines).Run()
 	if err != nil {
 		return err
