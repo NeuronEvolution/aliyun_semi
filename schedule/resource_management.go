@@ -117,15 +117,25 @@ func (r *ResourceManagement) createInstances() (instanceList []*Instance, instan
 func (r *ResourceManagement) createJobs() {
 	r.JobMap = make([]*Job, 0)
 	r.JobMap = append(r.JobMap, nil)
-	currentJobInstanceId := 0
+
+	totalJobCount := 0
+	for _, config := range r.JobConfigMap {
+		if config == nil {
+			continue
+		}
+
+		totalJobCount += config.InstanceCount
+	}
+
 	//打包创建实例
+	currentJobInstanceId := 0
 	for _, config := range r.JobConfigMap {
 		if config == nil {
 			continue
 		}
 
 		rest := config.InstanceCount
-		packCount := config.getPackCount()
+		packCount := config.getPackCount(totalJobCount)
 		for {
 			count := packCount
 			if rest < packCount {

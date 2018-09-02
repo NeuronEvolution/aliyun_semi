@@ -44,7 +44,11 @@ type JobConfig struct {
 }
 
 //任务打包部署
-func (c *JobConfig) getPackCount() (count int) {
+func (c *JobConfig) getPackCount(totalJobCount int) (count int) {
+	if totalJobCount < 320000 {
+		return 1
+	}
+
 	maxCpu := float64(JobPackCpu)
 	maxMem := float64(JobPackMem)
 
