@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"math"
 	"os"
 	"sync"
 )
@@ -156,7 +155,7 @@ func (r *ResourceManagement) loadInstanceMoveCommands() (moveCommands []*Instanc
 
 	for _, config := range r.InstanceDeployConfigList {
 		instance := r.InstanceMap[config.InstanceId]
-		m := r.MachineList[config.MachineId]
+		m := r.MachineMap[config.MachineId]
 		m.AddInstance(instance)
 		r.DeployMap[instance.InstanceId] = m
 	}
@@ -165,7 +164,7 @@ func (r *ResourceManagement) loadInstanceMoveCommands() (moveCommands []*Instanc
 		//fmt.Println(move.Round, move.InstanceId, move.MachineId)
 		instance := r.InstanceMap[move.InstanceId]
 		r.DeployMap[instance.InstanceId].RemoveInstance(instance.InstanceId)
-		m := r.MachineList[move.MachineId]
+		m := r.MachineMap[move.MachineId]
 		if !m.ConstraintCheck(instance, 1) {
 			return nil,
 				fmt.Errorf("loadInstanceMoveCommands ConstraintCheck failed machineId=%d,instanceId=%d",
@@ -196,7 +195,7 @@ func (r *ResourceManagement) instanceSchedule() (err error) {
 					//todo fix
 					return nil
 				}
-			} else if (r.Dataset == "a" && totalLoop > 0) ||
+			} else if (r.Dataset == "a" && totalLoop > 4096) ||
 				(r.Dataset == "b" && totalLoop > 0) ||
 				(r.Dataset == "c" && totalLoop > 0) ||
 				(r.Dataset == "d" && totalLoop > 0) {
@@ -212,19 +211,9 @@ func (r *ResourceManagement) instanceSchedule() (err error) {
 				deadLoop++
 				continue
 			}
-
 			deadLoop = 0
-			currentCost = MachinesGetScore(r.MachineList)
 			r.log("instanceSchedule scale=%2d loop=%8d,totalLoop=%8d %d %f %f\n",
-				scaleCount, loop, totalLoop, r.DeployedMachineCount, startCost, currentCost)
-			if loop >= int(float64(ScaleBase)*math.Pow(ScaleRatio, float64(scaleCount))) {
-				if (r.Dataset == "a" && scaleCount == 1) ||
-					(r.Dataset == "b" && scaleCount == 16) ||
-					(r.Dataset == "c" && scaleCount == 32) ||
-					(r.Dataset == "d" && scaleCount == 32) {
-					return nil
-				}
-			}
+				scaleCount, loop, totalLoop, r.DeployedMachineCount, startCost, MachinesGetScore(r.MachineList))
 		}
 	}
 

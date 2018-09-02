@@ -10,6 +10,8 @@ import (
 type JobScheduler struct {
 	R        *ResourceManagement
 	Machines []*Machine
+
+	limits [32]int
 }
 
 func NewJobScheduler(r *ResourceManagement, machines []*Machine) (s *JobScheduler) {
@@ -21,13 +23,13 @@ func NewJobScheduler(r *ResourceManagement, machines []*Machine) (s *JobSchedule
 }
 
 func (s *JobScheduler) bestFit(
-	machines []*Machine, job *Job, scheduleState []*JobScheduleState) (
+	machines []*Machine, job *Job, scheduleState []*JobScheduleState, cpuRatio float64) (
 	minStartMinutes int, minMachine *Machine) {
 
 	minStartMinutes = TimeSampleCount * 15
 	startTimeMin, startTimeMax, endTimeMin, endTimeMax := job.GetTimeRange(scheduleState)
 	for _, m := range machines {
-		ok, startTime := m.CanFirstFitJob(job, startTimeMin, startTimeMax, endTimeMin, endTimeMax)
+		ok, startTime := m.CanFirstFitJob(job, startTimeMin, startTimeMax, endTimeMin, endTimeMax, cpuRatio)
 		if !ok {
 			continue
 		}
@@ -52,27 +54,39 @@ func (s *JobScheduler) parallelBestFit(
 		minStartMinutesList[i] = TimeSampleCount * 15
 	}
 	var minMachineList [parallelCount]*Machine
-
 	size := len(machines) / parallelCount
-	wg := &sync.WaitGroup{}
-	for i := 0; i < parallelCount; i++ {
-		start := i * size
-		count := size
-		if i == parallelCount-1 {
-			count = len(machines) - start
-		}
-		wg.Add(1)
-		go func(index int, subMachines []*Machine) {
-			defer wg.Done()
-			minStartMinutesList[index], minMachineList[index] = s.bestFit(subMachines, job, scheduleState)
-		}(i, machines[start:start+count])
-	}
-	wg.Wait()
 
-	for i, v := range minStartMinutesList {
-		if v < minStartMinutes {
-			minStartMinutes = v
-			minMachine = minMachineList[i]
+	for i := 0; ; i++ {
+		cpuRatio := 0.5 + float64(i)*0.1
+		wg := &sync.WaitGroup{}
+		for pI := 0; pI < parallelCount; pI++ {
+			start := pI * size
+			count := size
+			if pI == parallelCount-1 {
+				count = len(machines) - start
+			}
+			wg.Add(1)
+			go func(index int, subMachines []*Machine, cpuRatio float64) {
+				defer wg.Done()
+				minStartMinutesList[index], minMachineList[index] = s.bestFit(
+					subMachines, job, scheduleState, cpuRatio)
+			}(pI, machines[start:start+count], cpuRatio)
+		}
+		wg.Wait()
+		for i, v := range minStartMinutesList {
+			if v < minStartMinutes {
+				minStartMinutes = v
+				minMachine = minMachineList[i]
+			}
+		}
+
+		if cpuRatio > 1 {
+			break
+		}
+
+		if minMachine != nil {
+			s.limits[i]++
+			break
 		}
 	}
 
@@ -80,19 +94,18 @@ func (s *JobScheduler) parallelBestFit(
 }
 
 func (s *JobScheduler) bestFitJobs(machines []*Machine, jobs []*Job) (result []*Machine, err error) {
-	//复制机器
-	result = MachinesCloneWithInstances(machines)
+	result = machines
 
 	//调度状态
 	scheduleState := NewJobScheduleState(s.R, s.R.JobList)
 
 	//BFD
 	for i, job := range jobs {
-		if i > 0 && i%10000 == 0 {
+		if i > 0 && i%1000 == 0 {
 			s.R.log("bestFitJobs %d\n", i)
 		}
 
-		minStartMinutes, minMachine := s.parallelBestFit(result, job, scheduleState)
+		minStartMinutes, minMachine := s.parallelBestFit(machines, job, scheduleState)
 		if minMachine == nil {
 			return nil, fmt.Errorf("bestFitJobs failed")
 		}
@@ -114,11 +127,12 @@ func (s *JobScheduler) bestFitJobs(machines []*Machine, jobs []*Job) (result []*
 	}
 	s.R.log("bestFitJobs totalScore=%f,jobWithInstanceCount=%d,machineCount=%d\n",
 		totalScore, jobWithInstanceCount, len(result))
+	fmt.Println(s.limits)
 
 	return result, nil
 }
 
-func (s *JobScheduler) Run() (err error) {
+func (s *JobScheduler) RunOld() (err error) {
 	s.R.log("JobScheduler.Run\n")
 	if len(s.R.JobList) == 0 {
 		return nil
@@ -179,7 +193,7 @@ func (s *JobScheduler) Run() (err error) {
 			s.R.log("JobScheduler.Run reach max scaleCurrent=%d\n", scaleCurrent)
 		}
 
-		result, err := s.bestFitJobs(s.Machines[:scaleCurrent], s.R.JobList)
+		result, err := s.bestFitJobs(MachinesCloneWithInstances(s.Machines[:scaleCurrent]), s.R.JobList)
 		if err != nil {
 			s.R.log("JobScheduler.Run failed scaleCurrent=%d\n", scaleCurrent)
 			//已达到最大机器数，并且调度失败
@@ -201,7 +215,7 @@ func (s *JobScheduler) Run() (err error) {
 				s.R.log("JobScheduler.Run scaleStep=1 failed\n")
 				machineCount = scaleCurrent + 1
 				//todo这里可以优化
-				lastResult, err = s.bestFitJobs(s.Machines[:machineCount], s.R.JobList)
+				lastResult, err = s.bestFitJobs(MachinesCloneWithInstances(s.Machines[:machineCount]), s.R.JobList)
 				if err != nil {
 					panic("bestFitJobs last one failed")
 				}
@@ -236,6 +250,47 @@ func (s *JobScheduler) Run() (err error) {
 	}
 
 	s.R.log("JobScheduler.Run totalScore=%f,machineCount=%d\n", MachinesGetScore(s.Machines), machineCount)
+
+	return nil
+}
+
+func (s *JobScheduler) sortJobs() {
+	//按照最早结束时间排序，FF插入
+	sort.Slice(s.R.JobList, func(i, j int) bool {
+		job1 := s.R.JobList[i]
+		job2 := s.R.JobList[j]
+
+		if job1.Config.isParentOf(job2.Config) {
+			return true
+		} else if job1.Config.isChildOf(job2.Config) {
+			return false
+		} else {
+			//return job1.Config.ExecMinutes > job2.Config.ExecMinutes
+
+			if math.Abs(float64(job1.Config.EndTimeMin-job2.Config.EndTimeMin)) < 8 {
+				//return job1.Config.ExecMinutes > job2.Config.ExecMinutes
+				//	return job1.Cpu > job2.Cpu
+				//return job1.Config.ExecMinutes > job2.Config.ExecMinutes
+				return job1.Cpu*float64(job1.Config.ExecMinutes) > job2.Cpu*float64(job2.Config.ExecMinutes)
+			} else {
+				return job1.Config.EndTimeMin < job2.Config.EndTimeMin
+			}
+		}
+	})
+}
+
+func (s *JobScheduler) Run() (err error) {
+	s.R.log("JobScheduler.Run,totalScore=%f\n", MachinesGetScore(s.Machines))
+	if len(s.R.JobList) == 0 {
+		return nil
+	}
+
+	s.sortJobs()
+
+	_, err = s.bestFitJobs(s.Machines, s.R.JobList)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

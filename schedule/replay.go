@@ -40,7 +40,9 @@ func (r *Replay) Run() (err error) {
 
 	totalScore := float64(0)
 	for _, m := range machines {
-		totalScore += m.GetCpuCost()
+		if m.InstanceListCount > 0 || m.JobListCount > 0 {
+			totalScore += m.GetCpuCost()
+		}
 	}
 	r.R.log("replay 1 score=%f\n", totalScore)
 
@@ -62,7 +64,9 @@ func (r *Replay) Run() (err error) {
 
 	totalScore = float64(0)
 	for _, m := range machines {
-		totalScore += m.GetCpuCostReal()
+		if m.InstanceListCount > 0 || m.JobListCount > 0 {
+			totalScore += m.GetCpuCostReal()
+		}
 	}
 	r.R.log("replay 2 score=%f\n", totalScore)
 
@@ -79,12 +83,20 @@ func (r *Replay) Run() (err error) {
 		for i := v.StartMinutes; i < v.StartMinutes+config.ExecMinutes; i++ {
 			m.Cpu[i] += config.Cpu * float64(v.Count)
 			m.Mem[i] += config.Mem * float64(v.Count)
+			if m.Cpu[i] > m.Config.Cpu+ConstraintE {
+				return fmt.Errorf(fmt.Sprintf("Replay failed job cpu=%f,maxCPu=%f", m.Cpu[i], m.Config.Cpu))
+			}
+			if m.Mem[i] > m.Config.Mem+ConstraintE {
+				return fmt.Errorf(fmt.Sprintf("Replay failed job mem=%f,maxMem=%f", m.Mem[i], m.Config.Mem))
+			}
 		}
 	}
 
 	totalScore = float64(0)
 	for _, m := range machines {
-		totalScore += m.GetCpuCostReal()
+		if m.InstanceListCount > 0 || m.JobListCount > 0 {
+			totalScore += m.GetCpuCostReal()
+		}
 	}
 
 	r.R.log("Replay ok,total score=%f\n", totalScore)

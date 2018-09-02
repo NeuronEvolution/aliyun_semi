@@ -23,7 +23,7 @@ func (r *ResourceManagement) firstFitJobs(machines []*Machine) (err error) {
 		startTimeMin, startTimeMax, endTimeMin, endTimeMax := job.GetTimeRange(scheduleStates)
 		deployed := false
 		for machineIndex, m := range machines {
-			ok, startMinutes := m.CanFirstFitJob(job, startTimeMin, startTimeMax, endTimeMin, endTimeMax)
+			ok, startMinutes := m.CanFirstFitJob(job, startTimeMin, startTimeMax, endTimeMin, endTimeMax, 1)
 			if ok {
 				job.StartMinutes = startMinutes
 				m.AddJob(job)

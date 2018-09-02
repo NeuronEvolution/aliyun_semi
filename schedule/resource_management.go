@@ -245,7 +245,7 @@ func (r *ResourceManagement) Run() (err error) {
 
 	//任务调度
 	//err = r.firstFitJobs(machines)
-	err = NewJobScheduler(r, machines).Run()
+	err = NewJobScheduler(r, machines[:r.DeployedMachineCount]).Run()
 	if err != nil {
 		return err
 	}
@@ -257,7 +257,7 @@ func (r *ResourceManagement) Run() (err error) {
 	//验证结果
 	err = NewReplay(r, instanceMoveCommands, jobDeployCommands).Run()
 	if err != nil {
-		return nil
+		return err
 	}
 
 	//输出结果
