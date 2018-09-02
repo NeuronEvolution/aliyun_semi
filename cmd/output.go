@@ -11,16 +11,16 @@ import (
 	"strconv"
 )
 
-func outputSummary(buf *bytes.Buffer, dataset string) (totalScore float64 ){
+func outputSummary(buf *bytes.Buffer, dataset string) (totalScore float64 ) {
 	buf.WriteString(dataset + "\n")
 	summary, err := ioutil.ReadFile("./_output/" + dataset + "/best_summary.csv")
 	if err == nil {
 		buf.WriteString(string(summary))
-		lines:= strings.Split(string(summary),"\n")
-		if len(lines)>0{
-			score,err:=strconv.ParseFloat(lines[0],64)
-			if err!=nil{
-				totalScore+=score
+		lines := strings.Split(string(summary), "\n")
+		if len(lines) > 0 {
+			totalScore, err = strconv.ParseFloat(lines[0], 64)
+			if err != nil {
+				fmt.Println("read totalScore faild", err)
 			}
 		}
 	} else {
@@ -82,11 +82,13 @@ func output() (err error) {
 	}
 
 	summaryBuf := bytes.NewBufferString("")
-	outputSummary(summaryBuf, "a")
-	outputSummary(summaryBuf, "b")
-	outputSummary(summaryBuf, "c")
-	outputSummary(summaryBuf, "d")
-	outputSummary(summaryBuf, "e")
+	scoreA:= outputSummary(summaryBuf, "a")
+	scoreB:=outputSummary(summaryBuf, "b")
+	scoreC:=outputSummary(summaryBuf, "c")
+	scoreD:=outputSummary(summaryBuf, "d")
+	scoreE:=outputSummary(summaryBuf, "e")
+	summaryBuf.WriteString("\n")
+	summaryBuf.WriteString(fmt.Sprintf("totalScore=%f\n",(scoreA+scoreB+scoreC+scoreD+scoreE)/5))
 	summaryFile := outputFile + "_summary.csv"
 	err = ioutil.WriteFile(summaryFile, summaryBuf.Bytes(), os.ModePerm)
 	if err != nil {
