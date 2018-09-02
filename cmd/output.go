@@ -7,17 +7,28 @@ import (
 	"io/ioutil"
 	"os"
 	"time"
+	"strings"
+	"strconv"
 )
 
-func outputSummary(buf *bytes.Buffer, dataset string) {
+func outputSummary(buf *bytes.Buffer, dataset string) (totalScore float64 ){
 	buf.WriteString(dataset + "\n")
 	summary, err := ioutil.ReadFile("./_output/" + dataset + "/best_summary.csv")
 	if err == nil {
 		buf.WriteString(string(summary))
+		lines:= strings.Split(string(summary),"\n")
+		if len(lines)>0{
+			score,err:=strconv.ParseFloat(lines[0],64)
+			if err!=nil{
+				totalScore+=score
+			}
+		}
 	} else {
 		fmt.Println("outputSummary failed", dataset, err)
 	}
 	buf.WriteString("\n")
+
+	return totalScore
 }
 
 func output() (err error) {
