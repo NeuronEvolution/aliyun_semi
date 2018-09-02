@@ -3,6 +3,7 @@ package schedule
 import (
 	"math/rand"
 	"sort"
+	"time"
 )
 
 type ResourceManagement struct {
@@ -20,7 +21,8 @@ type ResourceManagement struct {
 	Dataset                  string
 
 	//Status
-	Rand *rand.Rand
+	Rand      *rand.Rand
+	StartTime time.Time
 
 	MaxJobInstanceId     int
 	MachineList          []*Machine
@@ -56,6 +58,7 @@ func NewResourceManagement(
 	r.Dataset = dataset
 	r.OutputDir = outputDir
 	r.Rand = rand.New(rand.NewSource(0))
+	r.StartTime = time.Now()
 	r.MachineConfigPool = NewMachineConfigPool()
 
 	for _, config := range r.MachineConfigList {
@@ -188,15 +191,15 @@ func (r *ResourceManagement) beginOffline() {
 func (r *ResourceManagement) Run() (err error) {
 	//todo 为节约时间，这里不再自动探测最佳机器数量
 	if r.Dataset == "a" {
-		r.DeployedMachineCount = 4600
+		r.DeployedMachineCount = MachineA
 	} else if r.Dataset == "b" {
-
+		r.DeployedMachineCount = MachineB
 	} else if r.Dataset == "c" {
-
+		r.DeployedMachineCount = MachineC
 	} else if r.Dataset == "d" {
-
+		r.DeployedMachineCount = MachineD
 	} else if r.Dataset == "e" {
-		r.DeployedMachineCount = 8000
+		r.DeployedMachineCount = MachineE
 	}
 
 	//初始化

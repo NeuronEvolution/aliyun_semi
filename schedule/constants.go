@@ -2,9 +2,13 @@ package schedule
 
 const MachineA = 4600
 const MachineB = 4600
-const MachineC = 6000
-const MachineD = 6000
+const MachineC = 6600
+const MachineD = 6600
 const MachineE = 8000
+const MachineALoop = 4096
+const MachineBLoop = 4096
+const MachineCLoop = 8192
+const MachineDLoop = 8192
 
 const TimeSampleCount = 98
 const ScaleLimitH1 = 1.01

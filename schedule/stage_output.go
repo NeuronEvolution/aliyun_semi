@@ -52,9 +52,11 @@ func (r *ResourceManagement) output(
 	}
 
 	//输出结果说明
+	timeCost := time.Now().Sub(r.StartTime).Seconds()
 	costReal := MachinesGetScoreReal(machines)
 	summaryBuf := bytes.NewBufferString("")
 	summaryBuf.WriteString(fmt.Sprintf("%f\n", costReal))
+	summaryBuf.WriteString(fmt.Sprintf("timeCost=%f\n", timeCost))
 	summaryBuf.WriteString(fmt.Sprintf("file=%s\n", outputFile))
 	summaryBuf.WriteString(fmt.Sprintf("instanceMachineCount=%d,totalMachineCount=%d\n",
 		r.DeployedMachineCount, totalMachineCount))
