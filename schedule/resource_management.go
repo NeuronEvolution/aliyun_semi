@@ -206,11 +206,6 @@ func (r *ResourceManagement) Run() (err error) {
 		return err
 	}
 
-	err = r.firstFitJobs(r.MachineList)
-	if err != nil {
-		return err
-	}
-
 	//优化迭代
 	r.scheduleLoop()
 

@@ -26,10 +26,6 @@ func (s *JobScheduler) bestFit(
 
 	minStartMinutes = TimeSampleCount * 15
 	startTimeMin, startTimeMax, endTimeMin, endTimeMax := job.GetTimeRange(scheduleState)
-	//startTimeMin = 0
-	//startTimeMax = TimeSampleCount*15 - job.Config.ExecMinutes
-	//endTimeMax = TimeSampleCount * 15
-	//endTimeMin = job.Config.ExecMinutes
 	for _, m := range machines {
 		ok, startTime := m.CanFirstFitJob(job, startTimeMin, startTimeMax, endTimeMin, endTimeMax)
 		if !ok {
@@ -123,7 +119,7 @@ func (s *JobScheduler) bestFitJobs(machines []*Machine, jobs []*Job) (result []*
 }
 
 func (s *JobScheduler) Run() (err error) {
-	s.R.log("JobScheduler.Run")
+	s.R.log("JobScheduler.Run\n")
 	if len(s.R.JobList) == 0 {
 		return nil
 	}
@@ -143,8 +139,8 @@ func (s *JobScheduler) Run() (err error) {
 			if math.Abs(float64(job1.Config.EndTimeMin-job2.Config.EndTimeMin)) < 8 {
 				//return job1.Config.ExecMinutes > job2.Config.ExecMinutes
 				//	return job1.Cpu > job2.Cpu
-				return job1.Config.ExecMinutes > job2.Config.ExecMinutes
-				//return job1.Cpu*float64(job1.Config.ExecMinutes) > job2.Cpu*float64(job2.Config.ExecMinutes)
+				//return job1.Config.ExecMinutes > job2.Config.ExecMinutes
+				return job1.Cpu*float64(job1.Config.ExecMinutes) > job2.Cpu*float64(job2.Config.ExecMinutes)
 			} else {
 				return job1.Config.EndTimeMin < job2.Config.EndTimeMin
 			}

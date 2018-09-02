@@ -121,7 +121,7 @@ func (r *ResourceManagement) checkScale() (machineCountAllocate int) {
 
 func (r *ResourceManagement) scheduleLoop() {
 	if r.Dataset == "a" {
-		r.DeployedMachineCount = 4600
+		r.DeployedMachineCount = 4800
 	} else if r.Dataset == "b" {
 
 	} else if r.Dataset == "c" {
@@ -168,8 +168,7 @@ func (r *ResourceManagement) scheduleLoop() {
 			r.log("scheduleLoop scale=%2d loop=%8d,totalLoop=%8d %d %f %f\n",
 				scaleCount, loop, totalLoop, r.DeployedMachineCount, startCost, currentCost)
 			if loop >= int(float64(ScaleBase)*math.Pow(ScaleRatio, float64(scaleCount))) {
-				//4=511,6=1023,8=2045,10=4089
-				if (r.Dataset == "a" && scaleCount == 0) ||
+				if (r.Dataset == "a" && scaleCount == 1) ||
 					(r.Dataset == "b" && scaleCount == 16) ||
 					(r.Dataset == "c" && scaleCount == 32) ||
 					(r.Dataset == "d" && scaleCount == 32) {
