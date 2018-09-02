@@ -1,7 +1,11 @@
 package schedule
 
 import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"math"
+	"os"
 	"sync"
 )
 
@@ -119,38 +123,84 @@ func (r *ResourceManagement) checkScale() (machineCountAllocate int) {
 	return count
 }
 
-func (r *ResourceManagement) scheduleLoop() {
-	if r.Dataset == "a" {
-		r.DeployedMachineCount = 4800
-	} else if r.Dataset == "b" {
-
-	} else if r.Dataset == "c" {
-
-	} else if r.Dataset == "d" {
-
-	} else if r.Dataset == "e" {
-		r.DeployedMachineCount = 8000
+func (r *ResourceManagement) saveInstanceMoveCommands(moveCommands []*InstanceMoveCommand) {
+	data, err := json.Marshal(moveCommands)
+	if err != nil {
+		r.log("saveInstanceMoveCommands failed,%s\n", err.Error())
+		return
 	}
 
+	err = ioutil.WriteFile(r.OutputDir+"/save.json", data, os.ModePerm)
+	if err != nil {
+		r.log("saveInstanceMoveCommands failed,%s\n", err.Error())
+		return
+	}
+
+	r.log("saveInstanceMoveCommands ok,commandCount=%d\n", len(moveCommands))
+
+	return
+}
+
+func (r *ResourceManagement) loadInstanceMoveCommands() (moveCommands []*InstanceMoveCommand, err error) {
+	data, err := ioutil.ReadFile(r.OutputDir + "/save.json")
+	if err != nil {
+		r.log("loadInstanceMoveCommands ReadFile failed,%s\n", err.Error())
+		return
+	}
+
+	err = json.Unmarshal(data, &moveCommands)
+	if err != nil {
+		r.log("loadInstanceMoveCommands json.Unmarshal failed,%s\n", err.Error())
+		return
+	}
+
+	for _, config := range r.InstanceDeployConfigList {
+		instance := r.InstanceMap[config.InstanceId]
+		m := r.MachineList[config.MachineId]
+		m.AddInstance(instance)
+		r.DeployMap[instance.InstanceId] = m
+	}
+
+	for _, move := range moveCommands {
+		//fmt.Println(move.Round, move.InstanceId, move.MachineId)
+		instance := r.InstanceMap[move.InstanceId]
+		r.DeployMap[instance.InstanceId].RemoveInstance(instance.InstanceId)
+		m := r.MachineList[move.MachineId]
+		if !m.ConstraintCheck(instance, 1) {
+			return nil,
+				fmt.Errorf("loadInstanceMoveCommands ConstraintCheck failed machineId=%d,instanceId=%d",
+					m.MachineId, instance.InstanceId)
+		}
+		m.AddInstance(instance)
+		r.DeployMap[instance.InstanceId] = m
+	}
+
+	r.log("loadInstanceMoveCommands ok,totalScore=%f\n", MachinesGetScore(r.MachineList))
+
+	return moveCommands, nil
+}
+
+func (r *ResourceManagement) instanceSchedule() (err error) {
 	startCost := MachinesGetScore(r.MachineList)
 	totalLoop := 0
 	for scaleCount := 0; ; scaleCount++ {
 		currentCost := MachinesGetScore(r.MachineList)
-		r.log("scheduleLoop scale=%2d start cost=%f\n", scaleCount, currentCost)
+		r.log("instanceSchedule scale=%2d start cost=%f\n", scaleCount, currentCost)
 		pTableBigSmall := randBigSmall(r.DeployedMachineCount)
 		pTableSmallBig := randSmallBig(r.DeployedMachineCount)
 		loop := 0
 		deadLoop := 0
-		stop := false
 		for ; ; loop++ {
 			if r.Dataset == "e" {
 				if totalLoop > 0 && totalLoop%128 == 0 && currentCost < 8460 {
-					err := r.jobSchedule()
-					if err != nil {
-						r.log("scheduleLoop failed scale=%2d dead loop=%8d,totalLoop=%8d,%s\n",
-							scaleCount, deadLoop, totalLoop, err.Error())
-					}
+					//todo fix
+					return nil
 				}
+			} else if (r.Dataset == "a" && totalLoop > 0) ||
+				(r.Dataset == "b" && totalLoop > 0) ||
+				(r.Dataset == "c" && totalLoop > 0) ||
+				(r.Dataset == "d" && totalLoop > 0) {
+				return nil
 			}
 			totalLoop++
 
@@ -158,46 +208,25 @@ func (r *ResourceManagement) scheduleLoop() {
 			machinesByCpu := r.randomMachines(r.MachineList[:r.DeployedMachineCount], 32, pTableBigSmall, pTableSmallBig)
 			ok := r.scheduleMachines(machinesByCpu, deadLoop)
 			if !ok {
-				r.log("scheduleLoop scale=%2d dead loop=%8d,totalLoop=%8d\n", scaleCount, deadLoop, totalLoop)
+				r.log("instanceSchedule scale=%2d dead loop=%8d,totalLoop=%8d\n", scaleCount, deadLoop, totalLoop)
 				deadLoop++
 				continue
 			}
 
 			deadLoop = 0
 			currentCost = MachinesGetScore(r.MachineList)
-			r.log("scheduleLoop scale=%2d loop=%8d,totalLoop=%8d %d %f %f\n",
+			r.log("instanceSchedule scale=%2d loop=%8d,totalLoop=%8d %d %f %f\n",
 				scaleCount, loop, totalLoop, r.DeployedMachineCount, startCost, currentCost)
 			if loop >= int(float64(ScaleBase)*math.Pow(ScaleRatio, float64(scaleCount))) {
 				if (r.Dataset == "a" && scaleCount == 1) ||
 					(r.Dataset == "b" && scaleCount == 16) ||
 					(r.Dataset == "c" && scaleCount == 32) ||
 					(r.Dataset == "d" && scaleCount == 32) {
-					err := r.jobSchedule()
-					if err != nil {
-						r.log("scheduleLoop failed scale=%2d dead loop=%8d,totalLoop=%8d,%s\n",
-							scaleCount, deadLoop, totalLoop, err.Error())
-					}
-					stop = true
-					break
+					return nil
 				}
-
-				machineCountAllocate := r.checkScale()
-				if machineCountAllocate > 0 {
-					if r.Dataset != "a" {
-						r.DeployedMachineCount += machineCountAllocate
-						if r.DeployedMachineCount > len(r.MachineList) {
-							r.DeployedMachineCount = len(r.MachineList)
-						}
-					}
-				}
-				break
 			}
-		}
-		if stop {
-			break
 		}
 	}
 
-	r.log("scheduleLoop end  deployMachineCount=%d,totalLoop=%8d\n",
-		r.DeployedMachineCount, totalLoop)
+	return nil
 }

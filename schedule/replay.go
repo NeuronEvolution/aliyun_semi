@@ -21,7 +21,7 @@ func NewReplay(
 	return replay
 }
 
-func (r *Replay) Run(finalState []*Machine) (err error) {
+func (r *Replay) Run() (err error) {
 	//创建机器
 	machines := make(map[int]*Machine)
 	for _, m := range r.R.MachineList {

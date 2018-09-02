@@ -1,9 +1,9 @@
 package schedule
 
 type InstanceMoveCommand struct {
-	Round      int
-	InstanceId int
-	MachineId  int
+	Round      int `json:"round"`
+	InstanceId int `json:"instance_id"`
+	MachineId  int `json:"machine_id"`
 }
 
 type JobDeployCommand struct {

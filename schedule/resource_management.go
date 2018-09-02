@@ -186,6 +186,20 @@ func (r *ResourceManagement) beginOffline() {
 }
 
 func (r *ResourceManagement) Run() (err error) {
+	//todo 为节约时间，这里不再自动探测最佳机器数量
+	if r.Dataset == "a" {
+		r.DeployedMachineCount = 4600
+	} else if r.Dataset == "b" {
+
+	} else if r.Dataset == "c" {
+
+	} else if r.Dataset == "d" {
+
+	} else if r.Dataset == "e" {
+		r.DeployedMachineCount = 8000
+	}
+
+	//初始化
 	err = r.init()
 	if err != nil {
 		return err
@@ -196,18 +210,56 @@ func (r *ResourceManagement) Run() (err error) {
 
 	//return NewJobScheduler(r, r.MachineList).Run()
 
-	//初始化部署实例
-	if r.Dataset == "e" {
-		err = r.initE()
-	} else {
-		err = r.firstFitInstances()
+	//加载预先计算的实例部署，节约时间
+	instanceMoveCommands, err := r.loadInstanceMoveCommands()
+	if err != nil {
+		//初始化部署实例
+		if r.Dataset == "e" {
+			err = r.initE()
+		} else {
+			err = r.firstFitInstances()
+		}
+		if err != nil {
+			return err
+		}
+
+		//实例调度
+		err = r.instanceSchedule()
+		if err != nil {
+			return err
+		}
+
+		//之后实例不再调度，先计算出实例迁移指令
+		instanceMoveCommands, err := NewOnlineMerge(r).Run()
+		if err != nil {
+			return err
+		}
+
+		r.saveInstanceMoveCommands(instanceMoveCommands)
 	}
+
+	//todo 这里需要考虑在线迁移时的实例交换,改为从初始状态迁移后再部署任务,暂时不需要优化，除了e数据不需要固定实例
+	//重新插入实例，避免浮点精度问题
+	machines := MachinesCloneWithInstances(r.MachineList)
+	r.log("jobSchedule init totalScore=%f\n", MachinesGetScore(machines))
+
+	//任务调度
+	//err = r.firstFitJobs(machines)
+	err = NewJobScheduler(r, machines).Run()
 	if err != nil {
 		return err
 	}
+	r.log("jobSchedule totalScore=%f\n", MachinesGetScore(machines))
 
-	//优化迭代
-	r.scheduleLoop()
+	//构造任务调度指令
+	jobDeployCommands := r.buildJobDeployCommands(machines)
 
-	return nil
+	//验证结果
+	err = NewReplay(r, instanceMoveCommands, jobDeployCommands).Run()
+	if err != nil {
+		return nil
+	}
+
+	//输出结果
+	return r.output(machines, instanceMoveCommands, jobDeployCommands)
 }
