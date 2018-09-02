@@ -45,8 +45,8 @@ type JobConfig struct {
 
 //任务打包部署
 func (c *JobConfig) getPackCount() (count int) {
-	maxCpu := float64(8)
-	maxMem := float64(16)
+	maxCpu := float64(JobPackCpu)
+	maxMem := float64(JobPackMem)
 
 	if c.Cpu >= maxCpu {
 		return 1

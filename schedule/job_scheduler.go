@@ -57,7 +57,7 @@ func (s *JobScheduler) parallelBestFit(
 	size := len(machines) / parallelCount
 
 	for i := 0; ; i++ {
-		cpuRatio := 0.5 + float64(i)*0.1
+		cpuRatio := 0.5 + float64(i)*JobScheduleCpuLimitStep
 		wg := &sync.WaitGroup{}
 		for pI := 0; pI < parallelCount; pI++ {
 			start := pI * size

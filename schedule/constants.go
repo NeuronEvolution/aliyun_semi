@@ -1,5 +1,11 @@
 package schedule
 
+const MachineA = 4600
+const MachineB = 4600
+const MachineC = 6000
+const MachineD = 6000
+const MachineE = 8000
+
 const TimeSampleCount = 98
 const ScaleLimitH1 = 1.01
 const ScaleLimitH2 = 1.1
@@ -15,8 +21,10 @@ const MaxAppPerMachine = 256
 const MaxJobPerMachine = 65536
 const MaxCpuRatio = float64(0.5)
 const ConstraintE = float64(0.0000001)
-const MaxJobExecMinutes = 144
 const ParallelCpuCount = 6
+const JobScheduleCpuLimitStep = 0.01
+const JobPackCpu = 2
+const JobPackMem = 4
 
 //92,288,2457,7,7,9
 const HighCpu = 92
