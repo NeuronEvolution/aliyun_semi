@@ -160,7 +160,6 @@ func (o *OnlineMerge) roundFirst() {
 	ghostsDeploy := make([]*Machine, 0)
 
 	//尝试迁移其他实例到目标机器，若失败迁移到剩余机器
-	//若再失败，尝试将大实例的目标机器迁移开，下一轮迁入
 	moveAlready := 0
 	moveSuccess := 0
 	moveTemp := 0

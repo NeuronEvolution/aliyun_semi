@@ -138,28 +138,7 @@ func (s *JobScheduler) RunOld() (err error) {
 		return nil
 	}
 
-	//按照最早结束时间排序，FF插入
-	sort.Slice(s.R.JobList, func(i, j int) bool {
-		job1 := s.R.JobList[i]
-		job2 := s.R.JobList[j]
-
-		if job1.Config.isParentOf(job2.Config) {
-			return true
-		} else if job1.Config.isChildOf(job2.Config) {
-			return false
-		} else {
-			//return job1.Config.ExecMinutes > job2.Config.ExecMinutes
-
-			if math.Abs(float64(job1.Config.EndTimeMin-job2.Config.EndTimeMin)) < 8 {
-				//return job1.Config.ExecMinutes > job2.Config.ExecMinutes
-				//	return job1.Cpu > job2.Cpu
-				//return job1.Config.ExecMinutes > job2.Config.ExecMinutes
-				return job1.Cpu*float64(job1.Config.ExecMinutes) > job2.Cpu*float64(job2.Config.ExecMinutes)
-			} else {
-				return job1.Config.EndTimeMin < job2.Config.EndTimeMin
-			}
-		}
-	})
+	s.sortJobs()
 
 	var lastResult []*Machine
 	lastSucceed := false
@@ -255,7 +234,7 @@ func (s *JobScheduler) RunOld() (err error) {
 }
 
 func (s *JobScheduler) sortJobs() {
-	//按照最早结束时间排序，FF插入
+	//按照最早结束时间排序
 	sort.Slice(s.R.JobList, func(i, j int) bool {
 		job1 := s.R.JobList[i]
 		job2 := s.R.JobList[j]
@@ -265,12 +244,7 @@ func (s *JobScheduler) sortJobs() {
 		} else if job1.Config.isChildOf(job2.Config) {
 			return false
 		} else {
-			//return job1.Config.ExecMinutes > job2.Config.ExecMinutes
-
 			if math.Abs(float64(job1.Config.EndTimeMin-job2.Config.EndTimeMin)) < 8 {
-				//return job1.Config.ExecMinutes > job2.Config.ExecMinutes
-				//	return job1.Cpu > job2.Cpu
-				//return job1.Config.ExecMinutes > job2.Config.ExecMinutes
 				return job1.Cpu*float64(job1.Config.ExecMinutes) > job2.Cpu*float64(job2.Config.ExecMinutes)
 			} else {
 				return job1.Config.EndTimeMin < job2.Config.EndTimeMin
