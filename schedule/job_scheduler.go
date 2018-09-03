@@ -11,7 +11,7 @@ type JobScheduler struct {
 	R        *ResourceManagement
 	Machines []*Machine
 
-	limits [32]int
+	limits [1024]int
 }
 
 func NewJobScheduler(r *ResourceManagement, machines []*Machine) (s *JobScheduler) {
