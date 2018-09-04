@@ -23,7 +23,7 @@ type InstanceMerge struct {
 	MoveCommands []*InstanceMoveCommand
 }
 
-func NewOnlineMerge(r *ResourceManagement) *InstanceMerge {
+func NewInstanceMerge(r *ResourceManagement) *InstanceMerge {
 	m := &InstanceMerge{}
 	m.R = r
 	return m

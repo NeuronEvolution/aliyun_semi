@@ -280,7 +280,7 @@ func (r *ResourceManagement) Run() (err error) {
 		}
 
 		//之后实例不再调度，先计算出实例迁移指令
-		instanceMoveCommands, err = NewOnlineMerge(r).Run()
+		instanceMoveCommands, err = NewInstanceMerge(r).Run()
 		if err != nil {
 			return err
 		}
