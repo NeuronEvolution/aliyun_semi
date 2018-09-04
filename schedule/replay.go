@@ -73,6 +73,7 @@ func (r *Replay) Run() (err error) {
 	r.R.log("replay 2 score=%f\n", totalScore)
 
 	//部署任务
+	jobDeployed := make(map[int]int)
 	for _, v := range r.JobDeployCommands {
 		m := machines[v.MachineId]
 		var config *JobConfig
@@ -83,6 +84,8 @@ func (r *Replay) Run() (err error) {
 			}
 		}
 
+		jobDeployed[config.JobId] += v.Count
+
 		for i := v.StartMinutes; i < v.StartMinutes+config.ExecMinutes; i++ {
 			m.Cpu[i] += config.Cpu * float64(v.Count)
 			m.Mem[i] += config.Mem * float64(v.Count)
@@ -92,6 +95,14 @@ func (r *Replay) Run() (err error) {
 			if m.Mem[i] > m.Config.Mem+ConstraintE {
 				return fmt.Errorf(fmt.Sprintf("Replay failed job mem=%f,maxMem=%f", m.Mem[i], m.Config.Mem))
 			}
+		}
+	}
+	for _, config := range r.R.JobConfigMap {
+		if config == nil {
+			continue
+		}
+		if jobDeployed[config.JobId] != config.InstanceCount {
+			return fmt.Errorf(fmt.Sprintf("Replay failed job not all deployd,jobid=%s", config.RealJobId))
 		}
 	}
 

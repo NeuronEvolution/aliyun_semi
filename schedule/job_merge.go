@@ -16,5 +16,6 @@ func NewJobMerge(r *ResourceManagement, machines []*Machine, scheduleState []*Jo
 }
 
 func (s *JobMerge) Run() (jobDeployCommands []*JobDeployCommand) {
-	return nil
+
+	return s.R.buildJobDeployCommands(s.Machines)
 }
