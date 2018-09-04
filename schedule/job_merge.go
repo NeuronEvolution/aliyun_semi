@@ -53,58 +53,69 @@ func (s *JobMerge) bestFit(machines []*Machine, job *Job) (bestMachine *Machine,
 	return minScoreAddMachine, bestStartTime
 }
 
-func (s *JobMerge) Run() (jobDeployCommands []*JobDeployCommand) {
+func (s *JobMerge) Run(outputCallback func() (err error)) (err error) {
 	s.R.log("JobMerge.Run totalScore=%f\n", MachinesGetScore(s.Machines))
 
-	for i, m := range s.Machines {
-		if i > 0 && i%1 == 0 {
-			s.R.log("JobMerge.Run %d\n", i)
-		}
+	for {
+		moved := false
+		for i, m := range s.Machines {
+			if i > 0 && i%100 == 0 {
+				s.R.log("JobMerge.Run %d,totalScore=%f\n", i, MachinesGetScore(s.Machines))
+			}
 
-		s.R.log("JobMerge.Run %f\n", MachinesGetScore(s.Machines))
-
-		if m.JobListCount == 0 {
-			continue
-		}
-
-		//获取每个机器cpu最高且部署了任务的时刻
-		maxCpu, _, jobs := m.GetMaxCpuTimeWithJobs()
-		if maxCpu <= m.Config.Cpu*0.5 {
-			//fmt.Println("merge small")
-			continue
-		}
-
-		//对job按面积排序
-		sort.Slice(jobs, func(i, j int) bool {
-			return jobs[i].Cpu*float64(jobs[i].Config.ExecMinutes) > jobs[j].Cpu*float64(jobs[j].Config.ExecMinutes)
-		})
-
-		for _, job := range jobs {
-			m.RemoveJob(job.JobInstanceId)
-			//fmt.Println("remove", MachinesGetScore(s.Machines))
-			bestMachine, bestStartTime := s.bestFit(s.Machines, job)
-			//跳过最佳位置是原来的位置
-			if bestMachine == m && bestStartTime == job.StartMinutes {
-				m.AddJob(job)
-				//fmt.Println("merge keep", MachinesGetScore(s.Machines))
+			if m.JobListCount == 0 {
 				continue
 			}
 
-			//fmt.Println("merge new", job.StartMinutes, bestStartTime, m.MachineId, bestMachine.MachineId)
+			//获取每个机器cpu最高且部署了任务的时刻
+			maxCpu, _, jobs := m.GetMaxCpuTimeWithJobs()
+			if maxCpu <= m.Config.Cpu*0.5 {
+				//fmt.Println("merge small")
+				continue
+			}
 
-			//迁移job到最佳位置
-			job.StartMinutes = bestStartTime
-			s.ScheduleState[job.Config.JobId].UpdateTime()
-			bestMachine.AddJob(job)
+			//对job按面积排序
+			sort.Slice(jobs, func(i, j int) bool {
+				return jobs[i].Cpu*float64(jobs[i].Config.ExecMinutes) > jobs[j].Cpu*float64(jobs[j].Config.ExecMinutes)
+			})
 
-			//fmt.Println("merge new", MachinesGetScore(s.Machines))
+			for _, job := range jobs {
+				m.RemoveJob(job.JobInstanceId)
+				//fmt.Println("remove", MachinesGetScore(s.Machines))
+				bestMachine, bestStartTime := s.bestFit(s.Machines, job)
+				//跳过最佳位置是原来的位置
+				if bestMachine == m && bestStartTime == job.StartMinutes {
+					m.AddJob(job)
+					//fmt.Println("merge keep", MachinesGetScore(s.Machines))
+					continue
+				}
 
-			//每轮只处理一个，避免过度优化
+				//fmt.Println("merge new", job.StartMinutes, bestStartTime, m.MachineId, bestMachine.MachineId)
+
+				//迁移job到最佳位置
+				job.StartMinutes = bestStartTime
+				s.ScheduleState[job.Config.JobId].UpdateTime()
+				bestMachine.AddJob(job)
+				moved = true
+
+				//fmt.Println("merge new", MachinesGetScore(s.Machines))
+
+				//每轮只处理一个，避免过度优化
+				break
+			}
+		}
+
+		err := outputCallback()
+		if err != nil {
+			return err
+		}
+
+		if !moved {
 			break
 		}
 	}
 
 	s.R.log("JobMerge.Run ok totalScore=%f\n", MachinesGetScore(s.Machines))
 
-	return s.R.buildJobDeployCommands(s.Machines)
+	return nil
 }

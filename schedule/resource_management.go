@@ -316,14 +316,16 @@ func (r *ResourceManagement) Run() (err error) {
 	}
 
 	//对Job部署精调
-	jobDeployCommands := NewJobMerge(r, machines[:r.DeployedMachineCount], scheduleState).Run()
+	return NewJobMerge(r, machines[:r.DeployedMachineCount], scheduleState).Run(func() (err error) {
+		jobDeployCommands := r.buildJobDeployCommands(machines)
 
-	//验证结果
-	err = NewReplay(r, instanceMoveCommands, jobDeployCommands).Run()
-	if err != nil {
-		return err
-	}
+		//验证结果
+		err = NewReplay(r, instanceMoveCommands, jobDeployCommands).Run()
+		if err != nil {
+			return err
+		}
 
-	//输出结果
-	return r.output(machines, instanceMoveCommands, jobDeployCommands)
+		//输出结果
+		return r.output(machines, instanceMoveCommands, jobDeployCommands)
+	})
 }
