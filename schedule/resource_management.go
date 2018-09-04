@@ -258,9 +258,7 @@ func (r *ResourceManagement) Run() (err error) {
 	r.DeployMap = make([]*Machine, r.MaxInstanceId+1)
 	r.JobDeployMap = make([]*Machine, r.MaxJobInstanceId+1)
 
-	//return NewJobScheduler(r, r.MachineList).Run()
-
-	//加载预先计算的实例部署，节约时间
+	//加载预先计算的实例部署
 	instanceMoveCommands, err := r.loadInstanceMoveCommands()
 	if err != nil {
 		//初始化部署实例
@@ -296,7 +294,10 @@ func (r *ResourceManagement) Run() (err error) {
 
 	r.InstanceDeployScore = MachinesGetScore(machines)
 
+	//任务全局调度状态
 	scheduleState := NewJobScheduleState(r, r.JobList)
+
+	//加载预先部署的任务
 	jobDeployCommandsInitial, err := r.loadJobDeployCommands(machines, scheduleState)
 	if err != nil {
 		//任务调度
@@ -314,14 +315,15 @@ func (r *ResourceManagement) Run() (err error) {
 		r.saveJobDeployCommands(jobDeployCommandsInitial)
 	}
 
-	//todo 对Job部署精调
+	//对Job部署精调
+	jobDeployCommands := NewJobMerge(r, machines, scheduleState).Run()
 
 	//验证结果
-	err = NewReplay(r, instanceMoveCommands, jobDeployCommandsInitial).Run()
+	err = NewReplay(r, instanceMoveCommands, jobDeployCommands).Run()
 	if err != nil {
 		return err
 	}
 
 	//输出结果
-	return r.output(machines, instanceMoveCommands, jobDeployCommandsInitial)
+	return r.output(machines, instanceMoveCommands, jobDeployCommands)
 }

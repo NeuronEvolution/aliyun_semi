@@ -10,7 +10,7 @@ type Job struct {
 	Cpu           float64
 	Mem           float64
 
-	StartMinutes int
+	StartMinutes int //todo 分离状态
 }
 
 func NewJob(r *ResourceManagement, jobInstanceId int, config *JobConfig, instanceCount int) *Job {
