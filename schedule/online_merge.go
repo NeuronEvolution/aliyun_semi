@@ -7,8 +7,8 @@ import (
 type OnlineMerge struct {
 	R *ResourceManagement
 
-	FinalMachineMap [][]int
-	FinalDeployMap  []int
+	FinalMachineMap [][]int //最终状态－每台机器部署的实例列表
+	FinalDeployMap  []int   //最终状态-每个实例部署的机器
 
 	MachineList         []*Machine
 	MachineMap          []*Machine
@@ -17,8 +17,8 @@ type OnlineMerge struct {
 	DeployMap           []*Machine
 	DeployedMachineList []*Machine
 	DeployedMachineMap  []*Machine
-	FreeMachineList     []*Machine
-	FreeMachineMap      []*Machine
+	FreeMachineList     []*Machine //非最终状态的机器，可自由使用
+	FreeMachineMap      []*Machine //非最终状态的机器，可自由使用
 
 	MoveCommands []*InstanceMoveCommand
 }

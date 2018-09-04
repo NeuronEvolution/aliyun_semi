@@ -11,7 +11,7 @@ type JobScheduler struct {
 	R        *ResourceManagement
 	Machines []*Machine
 
-	limits [1024]int
+	limits [1024]int //纪录各水平线部署的任务数量
 }
 
 func NewJobScheduler(r *ResourceManagement, machines []*Machine) (s *JobScheduler) {
@@ -27,7 +27,7 @@ func (s *JobScheduler) bestFit(
 	minStartMinutes int, minMachine *Machine) {
 
 	minStartMinutes = TimeSampleCount * 15
-	startTimeMin, startTimeMax, _, _ := job.GetTimeRange(scheduleState)
+	startTimeMin, startTimeMax, _, _ := job.RecursiveGetTimeRange(scheduleState)
 	for _, m := range machines {
 		ok, startTime := m.CanFirstFitJob(job, startTimeMin, startTimeMax, cpuRatio)
 		if !ok {
@@ -48,6 +48,7 @@ func (s *JobScheduler) parallelBestFit(
 
 	minStartMinutes = TimeSampleCount * 15
 
+	//分割机器，并发BestFit
 	const parallelCount = ParallelCpuCount * 2
 	var minStartMinutesList [parallelCount]int
 	for i := 0; i < parallelCount; i++ {
@@ -55,11 +56,11 @@ func (s *JobScheduler) parallelBestFit(
 	}
 	var minMachineList [parallelCount]*Machine
 	size := len(machines) / parallelCount
-
 	for i := 0; ; i++ {
+		//水平逐步线上移
 		cpuRatio := 0.5 + float64(i)*JobScheduleCpuLimitStep
-		if cpuRatio>1{
-			cpuRatio=1
+		if cpuRatio > 1 {
+			cpuRatio = 1
 		}
 		wg := &sync.WaitGroup{}
 		for pI := 0; pI < parallelCount; pI++ {
@@ -135,6 +136,7 @@ func (s *JobScheduler) bestFitJobs(machines []*Machine, jobs []*Job) (result []*
 	return result, nil
 }
 
+//任务部署都能部署到实例机器上，基本上不需要自动伸缩部署任务
 func (s *JobScheduler) RunOld() (err error) {
 	s.R.log("JobScheduler.Run\n")
 	if len(s.R.JobList) == 0 {
@@ -243,11 +245,14 @@ func (s *JobScheduler) sortJobs() {
 		job2 := s.R.JobList[j]
 
 		if job1.Config.isParentOf(job2.Config) {
+			//保证父节点在前
 			return true
 		} else if job1.Config.isChildOf(job2.Config) {
+			//保证子节点在后
 			return false
 		} else {
 			if math.Abs(float64(job1.Config.EndTimeMin-job2.Config.EndTimeMin)) < 8 {
+				//结束时间接近的按面积排序
 				return job1.Cpu*float64(job1.Config.ExecMinutes) > job2.Cpu*float64(job2.Config.ExecMinutes)
 			} else {
 				return job1.Config.EndTimeMin < job2.Config.EndTimeMin

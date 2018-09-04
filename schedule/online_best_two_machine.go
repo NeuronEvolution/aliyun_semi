@@ -5,7 +5,8 @@ import (
 	"math/rand"
 )
 
-func (r *ResourceManagement) RandomBest(machines []*Machine, instances []*Instance) (bestPos []int, bestCost float64) {
+//优化两台机器的实例－随机部署
+func (r *ResourceManagement) InstanceDeployRandomBest(machines []*Machine, instances []*Instance) (bestPos []int, bestCost float64) {
 	random := rand.New(rand.NewSource(int64(len(instances))))
 
 	machineCount := len(machines)
@@ -54,9 +55,9 @@ func (r *ResourceManagement) RandomBest(machines []*Machine, instances []*Instan
 	return bestPos, bestCost
 }
 
-func (r *ResourceManagement) Best(machines []*Machine, instances []*Instance, deadLoop int) (bestPos []int, bestCost float64) {
+func (r *ResourceManagement) InstanceDeployForceBest(machines []*Machine, instances []*Instance, deadLoop int) (bestPos []int, bestCost float64) {
 	if deadLoop == 0 && r.Dataset != "e" {
-		//return r.RandomBest(machines, instances)
+		//return r.InstanceDeployRandomBest(machines, instances)
 	}
 
 	e := deadLoop

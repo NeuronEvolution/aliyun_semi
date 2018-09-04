@@ -26,7 +26,7 @@ func NewJob(r *ResourceManagement, jobInstanceId int, config *JobConfig, instanc
 	return job
 }
 
-func (job *Job) GetTimeRange(scheduleState []*JobScheduleState) (
+func (job *Job) RecursiveGetTimeRange(scheduleState []*JobScheduleState) (
 	startTimeMin int, startTimeMax int, endTimeMin int, endTimeMax int) {
 	c := job.Config
 
@@ -35,7 +35,7 @@ func (job *Job) GetTimeRange(scheduleState []*JobScheduleState) (
 	endTimeMin = c.EndTimeMin
 	endTimeMax = c.EndTimeMax
 
-	//fmt.Println("GetTimeRange 1", job.JobInstanceId, startTimeMin, startTimeMax, endTimeMin, endTimeMax)
+	//fmt.Println("RecursiveGetTimeRange 1", job.JobInstanceId, startTimeMin, startTimeMax, endTimeMin, endTimeMax)
 
 	if c.Parents != nil {
 		for _, v := range c.Parents {
@@ -58,7 +58,7 @@ func (job *Job) GetTimeRange(scheduleState []*JobScheduleState) (
 	endTimeMin = startTimeMin + c.ExecMinutes
 	startTimeMax = endTimeMax - c.ExecMinutes
 
-	//fmt.Println("GetTimeRange 2", startTimeMin, startTimeMax, endTimeMin, endTimeMax)
+	//fmt.Println("RecursiveGetTimeRange 2", startTimeMin, startTimeMax, endTimeMin, endTimeMax)
 
 	return startTimeMin, startTimeMax, endTimeMin, endTimeMax
 }

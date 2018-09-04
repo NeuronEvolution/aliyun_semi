@@ -32,10 +32,6 @@ func (c *AppCountCollection) debugPrint() {
 	}
 }
 
-func (c *AppCountCollection) Reset() {
-	c.ListCount = 0
-}
-
 func (c *AppCountCollection) Add(appId int) {
 	for i := 0; i < c.ListCount; i++ {
 		if c.List[i].AppId == appId {

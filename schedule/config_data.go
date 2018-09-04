@@ -43,36 +43,6 @@ type JobConfig struct {
 	TimeRangeMaxInitialized bool
 }
 
-//任务打包部署
-func (c *JobConfig) getPackCount(totalJobCount int) (count int) {
-	if totalJobCount < 320000 {
-		return 1
-	}
-
-	maxCpu := float64(JobPackCpu)
-	maxMem := float64(JobPackMem)
-
-	if c.Cpu >= maxCpu {
-		return 1
-	}
-
-	if c.Cpu >= maxMem {
-		return 1
-	}
-
-	count = 32
-	cpuCount := int(maxCpu / c.Cpu)
-	memCount := int(maxMem / c.Mem)
-	if cpuCount < count {
-		count = cpuCount
-	}
-	if memCount < count {
-		count = memCount
-	}
-
-	return count
-}
-
 func (c *JobConfig) isParentOf(p *JobConfig) bool {
 	for _, v := range c.Children {
 		if v == p {

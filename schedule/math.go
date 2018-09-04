@@ -35,6 +35,7 @@ func Sqrt(r float64) float64 {
 	return r
 }
 
+//时间点数据统计分析
 func Statistics(arr [TimeSampleCount]float64) (avg float64, dev float64, min float64, max float64) {
 	min = math.MaxFloat64
 	max = -math.MaxFloat64
@@ -60,19 +61,7 @@ func Statistics(arr [TimeSampleCount]float64) (avg float64, dev float64, min flo
 	return
 }
 
-func randBig2Big(count int) []float64 {
-	pTable := make([]float64, count)
-	for i := 0; i < count; i++ {
-		pTable[i] = math.Exp((math.Abs(float64(i)-float64(count)/2) - float64(count)/2) /
-			(float64(count) / 8))
-		if i > 0 {
-			pTable[i] += pTable[i-1]
-		}
-	}
-
-	return pTable
-}
-
+//指数随机表－从大到小
 func randBigSmall(count int) []float64 {
 	pTable := make([]float64, count)
 	for i := 0; i < count; i++ {
@@ -85,6 +74,7 @@ func randBigSmall(count int) []float64 {
 	return pTable
 }
 
+//指数随机表－从小到大
 func randSmallBig(count int) []float64 {
 	pTable := make([]float64, count)
 	for i := 0; i < count; i++ {

@@ -21,9 +21,8 @@ type ResourceManagement struct {
 	Dataset                  string
 
 	//Status
-	Rand      *rand.Rand
-	StartTime time.Time
-
+	Rand                 *rand.Rand
+	StartTime            time.Time
 	MaxJobInstanceId     int
 	MachineList          []*Machine
 	MachineMap           []*Machine
@@ -114,6 +113,36 @@ func (r *ResourceManagement) createInstances() (instanceList []*Instance, instan
 	return instanceList, instanceMap
 }
 
+//任务打包部署
+func (r *ResourceManagement) getPackCount(c *JobConfig, totalJobCount int) (count int) {
+	if totalJobCount < 320000 {
+		return 1
+	}
+
+	maxCpu := float64(JobPackCpu)
+	maxMem := float64(JobPackMem)
+
+	if c.Cpu >= maxCpu {
+		return 1
+	}
+
+	if c.Cpu >= maxMem {
+		return 1
+	}
+
+	count = 32
+	cpuCount := int(maxCpu / c.Cpu)
+	memCount := int(maxMem / c.Mem)
+	if cpuCount < count {
+		count = cpuCount
+	}
+	if memCount < count {
+		count = memCount
+	}
+
+	return count
+}
+
 func (r *ResourceManagement) createJobs() {
 	r.JobMap = make([]*Job, 0)
 	r.JobMap = append(r.JobMap, nil)
@@ -127,7 +156,7 @@ func (r *ResourceManagement) createJobs() {
 		totalJobCount += config.InstanceCount
 	}
 
-	//打包创建实例
+	//打包创建任务实例
 	currentJobInstanceId := 0
 	for _, config := range r.JobConfigMap {
 		if config == nil {
@@ -135,7 +164,7 @@ func (r *ResourceManagement) createJobs() {
 		}
 
 		rest := config.InstanceCount
-		packCount := config.getPackCount(totalJobCount)
+		packCount := r.getPackCount(config, totalJobCount)
 		for {
 			count := packCount
 			if rest < packCount {
@@ -180,6 +209,7 @@ func (r *ResourceManagement) init() (err error) {
 	return nil
 }
 
+//e数据单独初始化，直接使用初始状态
 func (r *ResourceManagement) initE() (err error) {
 	r.DeployedMachineCount = 8000
 	for _, config := range r.InstanceDeployConfigList {
@@ -248,10 +278,9 @@ func (r *ResourceManagement) Run() (err error) {
 			return err
 		}
 
+		//保存迁移指令
 		r.saveInstanceMoveCommands(instanceMoveCommands)
 	}
-
-	return
 
 	//todo 这里需要考虑在线迁移时的实例交换,改为从初始状态迁移后再部署任务,暂时不需要优化，除了e数据不需要固定实例
 	//重新插入实例，避免浮点精度问题

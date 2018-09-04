@@ -8,30 +8,6 @@ import (
 	"sync"
 )
 
-func (r *ResourceManagement) scheduleMachines(machines []*Machine, deadLoop int) (has bool) {
-	wg := &sync.WaitGroup{}
-	max := len(machines)
-	if len(machines)%2 == 1 {
-		max = len(machines) - 1
-	}
-	for i := 0; i < max; i += 2 {
-		batchMachines := []*Machine{machines[i], machines[i+1]}
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
-			ok := r.scheduleTwoMachine(batchMachines, deadLoop)
-			if ok {
-				has = true
-			}
-		}()
-	}
-
-	wg.Wait()
-
-	return has
-}
-
 func (r *ResourceManagement) scheduleTwoMachine(machines []*Machine, deadLoop int) (ok bool) {
 	instances := make([]*Instance, 0)
 	for _, m := range machines {
@@ -43,7 +19,7 @@ func (r *ResourceManagement) scheduleTwoMachine(machines []*Machine, deadLoop in
 		cost += m.GetCpuCost()
 	}
 
-	bestPos, bestCost := r.Best(machines, instances, deadLoop)
+	bestPos, bestCost := r.InstanceDeployForceBest(machines, instances, deadLoop)
 	if bestCost >= cost {
 		return false
 	}
@@ -67,6 +43,32 @@ func (r *ResourceManagement) scheduleTwoMachine(machines []*Machine, deadLoop in
 	return true
 }
 
+func (r *ResourceManagement) scheduleMachines(machines []*Machine, deadLoop int) (has bool) {
+	//两两分组并行调度
+	wg := &sync.WaitGroup{}
+	max := len(machines)
+	if len(machines)%2 == 1 {
+		max = len(machines) - 1
+	}
+	for i := 0; i < max; i += 2 {
+		batchMachines := []*Machine{machines[i], machines[i+1]}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			ok := r.scheduleTwoMachine(batchMachines, deadLoop)
+			if ok {
+				has = true
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	return has
+}
+
+//从指定的机器中一大一小地随机一批机器
 func (r *ResourceManagement) randomMachines(pool []*Machine, count int, bigSmall []float64, smallBig []float64) (machines []*Machine) {
 	machines = make([]*Machine, 0)
 	for i := 0; i < count; i++ {
@@ -99,7 +101,8 @@ func (r *ResourceManagement) randomMachines(pool []*Machine, count int, bigSmall
 	return machines
 }
 
-func (r *ResourceManagement) checkScale() (machineCountAllocate int) {
+//计算实例部署最佳机器自动增长数量
+func (r *ResourceManagement) instanceDeployCheckMachinesScale() (machineCountAllocate int) {
 	h1 := 0
 	h2 := 0
 	h3 := 0
@@ -117,7 +120,7 @@ func (r *ResourceManagement) checkScale() (machineCountAllocate int) {
 
 	count := (h1-h2)/ScaleRatioH1 + (h2-h3)/ScaleRatioH2 + h3/ScaleRatioH3
 
-	r.log("checkScale h1=%4d,h2=%4d,h3=%4d,count=%4d\n", h1, h2, h3, count)
+	r.log("instanceDeployCheckMachinesScale h1=%4d,h2=%4d,h3=%4d,count=%4d\n", h1, h2, h3, count)
 
 	return count
 }
@@ -153,6 +156,7 @@ func (r *ResourceManagement) loadInstanceMoveCommands() (moveCommands []*Instanc
 		return
 	}
 
+	//初始状态部署
 	for _, config := range r.InstanceDeployConfigList {
 		instance := r.InstanceMap[config.InstanceId]
 		m := r.MachineMap[config.MachineId]
@@ -160,6 +164,7 @@ func (r *ResourceManagement) loadInstanceMoveCommands() (moveCommands []*Instanc
 		r.DeployMap[instance.InstanceId] = m
 	}
 
+	//迁移
 	for _, move := range moveCommands {
 		//fmt.Println(move.Round, move.InstanceId, move.MachineId)
 		instance := r.InstanceMap[move.InstanceId]

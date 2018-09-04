@@ -46,6 +46,7 @@ func (r *Replay) Run() (err error) {
 	}
 	r.R.log("replay 1 score=%f\n", totalScore)
 
+	//部署实例
 	for _, move := range r.InstanceMoveCommands {
 		//fmt.Println(move.Round, move.InstanceId, move.MachineId)
 		instance := r.R.InstanceMap[move.InstanceId]
@@ -58,6 +59,7 @@ func (r *Replay) Run() (err error) {
 		deploys[instance.InstanceId] = m
 	}
 
+	//转化为任务部署状态
 	for _, m := range machines {
 		m.beginOffline()
 	}
@@ -70,6 +72,7 @@ func (r *Replay) Run() (err error) {
 	}
 	r.R.log("replay 2 score=%f\n", totalScore)
 
+	//部署任务
 	for _, v := range r.JobDeployCommands {
 		m := machines[v.MachineId]
 		var config *JobConfig

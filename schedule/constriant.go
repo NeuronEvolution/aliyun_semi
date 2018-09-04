@@ -69,6 +69,7 @@ func ConstraintCheckAppInterferenceAddInstance(appId int, c *AppCountCollection,
 	return true
 }
 
+//资源限制检测，先检测计算代价小的
 func ConstraintCheckResourceLimit(r *Resource, i *Resource, c *MachineConfig, maxCpuRatio float64) bool {
 	//fmt.Printf("ConstraintCheckResourceLimit\n")
 	if r.Disk+i.Disk > c.Disk {

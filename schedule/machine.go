@@ -3,7 +3,6 @@ package schedule
 import (
 	"fmt"
 	"math"
-	"math/rand"
 )
 
 type Machine struct {
@@ -12,7 +11,6 @@ type Machine struct {
 	Mem [TimeSampleCount * 15]float64
 
 	R                  *ResourceManagement
-	Rand               *rand.Rand
 	MachineId          int
 	Config             *MachineConfig
 	InstanceList       []*Instance
@@ -21,14 +19,13 @@ type Machine struct {
 	JobList            []*Job
 	JobListCount       int
 
-	cpuCost      float64
-	cpuCostValid bool
+	cpuCost      float64 //延迟计算得分
+	cpuCostValid bool    //延迟计算得分
 }
 
 func NewMachine(r *ResourceManagement, machineId int, config *MachineConfig) *Machine {
 	m := &Machine{}
 	m.R = r
-	m.Rand = rand.New(rand.NewSource(0))
 	m.MachineId = machineId
 	m.Config = config
 	m.InstanceList = make([]*Instance, MaxInstancePerMachine)
@@ -121,6 +118,7 @@ func (m *Machine) RemoveJob(jobInstanceId int) {
 	}
 }
 
+//将实例的98点转换为任务的98*15点，提高性能
 func (m *Machine) beginOffline() {
 	for i, cpu := range m.Resource.Cpu {
 		for j := 0; j < 15; j++ {
