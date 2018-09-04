@@ -58,7 +58,7 @@ func (r *ResourceManagement) output(
 	summaryBuf.WriteString(fmt.Sprintf("%f\n", costReal))
 	summaryBuf.WriteString(fmt.Sprintf("timeCost=%f\n", timeCost))
 	summaryBuf.WriteString(fmt.Sprintf("file=%s\n", outputFile))
-	summaryBuf.WriteString(fmt.Sprintf("JobScheduleCpuLimitStep=%f\n",JobScheduleCpuLimitStep))
+	summaryBuf.WriteString(fmt.Sprintf("JobScheduleCpuLimitStep=%f\n", JobScheduleCpuLimitStep))
 	summaryBuf.WriteString(fmt.Sprintf("instanceMachineCount=%d,totalMachineCount=%d\n",
 		r.DeployedMachineCount, totalMachineCount))
 	summaryBuf.WriteString(fmt.Sprintf("instanceMoveCommand=%d\n", len(instanceMoveCommands)))

@@ -27,9 +27,9 @@ func (s *JobScheduler) bestFit(
 	minStartMinutes int, minMachine *Machine) {
 
 	minStartMinutes = TimeSampleCount * 15
-	startTimeMin, startTimeMax, endTimeMin, endTimeMax := job.GetTimeRange(scheduleState)
+	startTimeMin, startTimeMax, _, _ := job.GetTimeRange(scheduleState)
 	for _, m := range machines {
-		ok, startTime := m.CanFirstFitJob(job, startTimeMin, startTimeMax, endTimeMin, endTimeMax, cpuRatio)
+		ok, startTime := m.CanFirstFitJob(job, startTimeMin, startTimeMax, cpuRatio)
 		if !ok {
 			continue
 		}
@@ -58,6 +58,9 @@ func (s *JobScheduler) parallelBestFit(
 
 	for i := 0; ; i++ {
 		cpuRatio := 0.5 + float64(i)*JobScheduleCpuLimitStep
+		if cpuRatio>1{
+			cpuRatio=1
+		}
 		wg := &sync.WaitGroup{}
 		for pI := 0; pI < parallelCount; pI++ {
 			start := pI * size
@@ -80,7 +83,7 @@ func (s *JobScheduler) parallelBestFit(
 			}
 		}
 
-		if cpuRatio > 1 {
+		if cpuRatio >= 1 {
 			break
 		}
 

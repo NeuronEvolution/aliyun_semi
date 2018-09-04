@@ -260,17 +260,9 @@ func (m *Machine) DebugPrint() {
 	}
 }
 
-func (m *Machine) CanFirstFitJob(
-	job *Job, startTimeMin int, startTimeMax int, endTimeMin int, endTimeMax int, cpuRatio float64) (
-	ok bool, startMinutes int) {
+func (m *Machine) CanFirstFitJob(job *Job, startTimeMin int, startTimeMax int, cpuRatio float64) (ok bool, startMinutes int) {
 	//fmt.Printf("checkMachineAddJob %d,%d,%d,%d,%d,%d,%d\n",
-	//	m.MachineId, job.JobInstanceId, job.Config.ExecMinutes, startTimeMin, startTimeMax, endTimeMin, endTimeMax)
-	if m.InstanceListCount == 0 {
-		cpuRatio = 1
-	}
-	if cpuRatio > 1 {
-		cpuRatio = 1
-	}
+	//	m.MachineId, job.JobInstanceId, job.Config.ExecMinutes, startTimeMin, startTimeMax)
 
 	for i := startTimeMin; i <= startTimeMax; i++ {
 		failed := false

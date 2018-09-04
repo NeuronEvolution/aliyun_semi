@@ -223,7 +223,6 @@ func (r *ResourceManagement) Run() (err error) {
 
 	//return NewJobScheduler(r, r.MachineList).Run()
 
-
 	//加载预先计算的实例部署，节约时间
 	instanceMoveCommands, err := r.loadInstanceMoveCommands()
 	if err != nil {
@@ -252,6 +251,7 @@ func (r *ResourceManagement) Run() (err error) {
 		r.saveInstanceMoveCommands(instanceMoveCommands)
 	}
 
+	return
 
 	//todo 这里需要考虑在线迁移时的实例交换,改为从初始状态迁移后再部署任务,暂时不需要优化，除了e数据不需要固定实例
 	//重新插入实例，避免浮点精度问题
