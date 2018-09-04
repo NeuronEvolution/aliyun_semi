@@ -73,6 +73,7 @@ func (r *ResourceManagement) output(
 	}
 
 	//更新最佳结果
+	var bestScore float64
 	update := false
 	bestSummaryFile := r.OutputDir + "/best_summary.csv"
 	bestSummary, err := ioutil.ReadFile(bestSummaryFile)
@@ -83,7 +84,7 @@ func (r *ResourceManagement) output(
 		if len(tokens) == 0 {
 			update = true
 		} else {
-			bestScore, err := strconv.ParseFloat(tokens[0], 64)
+			bestScore, err = strconv.ParseFloat(tokens[0], 64)
 			if err != nil {
 				update = true
 			} else {
@@ -96,7 +97,7 @@ func (r *ResourceManagement) output(
 		}
 	}
 	if update {
-		r.log("output update best cost=%f\n", costReal)
+		r.log("output update best cost=%f,old=%f\n", costReal, bestScore)
 		bestFile := r.OutputDir + "/best.csv"
 		err = ioutil.WriteFile(bestFile, buf.Bytes(), os.ModePerm)
 		if err != nil {

@@ -316,7 +316,7 @@ func (r *ResourceManagement) Run() (err error) {
 	}
 
 	//对Job部署精调
-	jobDeployCommands := NewJobMerge(r, machines, scheduleState).Run()
+	jobDeployCommands := NewJobMerge(r, machines[:r.DeployedMachineCount], scheduleState).Run()
 
 	//验证结果
 	err = NewReplay(r, instanceMoveCommands, jobDeployCommands).Run()

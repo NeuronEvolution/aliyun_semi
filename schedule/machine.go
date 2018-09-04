@@ -204,6 +204,15 @@ func (m *Machine) GetCpuCost() float64 {
 	return m.cpuCost
 }
 
+func (m *Machine) CalcCpuCostOne(cpu float64) float64 {
+	r := cpu / m.Config.Cpu
+	if r > 0.5 {
+		return 1 + (1+float64(m.InstanceListCount))*(Exp(r-0.5)-1)
+	} else {
+		return 1
+	}
+}
+
 func (m *Machine) GetCostWithInstance(instance *Instance) float64 {
 	totalCost := float64(0)
 	for i := 0; i < TimeSampleCount; i++ {
@@ -277,4 +286,70 @@ func (m *Machine) CanFirstFitJob(job *Job, startTimeMin int, startTimeMax int, c
 	}
 
 	return false, 0
+}
+
+func (m *Machine) GetJobsByTime(t int) (jobs []*Job) {
+	for _, job := range m.JobList[:m.JobListCount] {
+		if job.StartMinutes <= t && job.StartMinutes+job.Config.ExecMinutes > t {
+			jobs = append(jobs, job)
+		}
+	}
+
+	return jobs
+}
+
+func (m *Machine) GetMaxCpuTimeWithJobs() (maxCpu float64, maxCpuTime int, jobs []*Job) {
+	for i, v := range m.Cpu {
+		if v > maxCpu {
+			tempJobs := m.GetJobsByTime(i)
+			if len(tempJobs) > 0 {
+				maxCpu = v
+				maxCpuTime = i
+				jobs = tempJobs
+			}
+		}
+	}
+
+	return maxCpu, maxCpuTime, jobs
+}
+
+func (m *Machine) bestFitJob(job *Job, startTimeMin int, startTimeMax int) (ok bool, minStartMinutes int, minScoreAdd float64) {
+	timeCount := startTimeMax + job.Config.ExecMinutes - startTimeMin
+	currentScores := make([]float64, timeCount)
+	newScores := make([]float64, timeCount)
+
+	//计算当前得分表
+	for i := startTimeMin; i < startTimeMax+job.Config.ExecMinutes; i++ {
+		currentScores[i-startTimeMin] = m.CalcCpuCostOne(m.Cpu[i])
+	}
+
+	minScoreAdd = math.MaxFloat64
+	minStartMinutes = -1
+	for i := startTimeMin; i <= startTimeMax; i++ {
+		failed := false
+		for j := i; j < i+job.Config.ExecMinutes; j++ {
+			if m.Cpu[j]+job.Cpu > m.Config.Cpu+ConstraintE || m.Mem[j]+job.Mem > m.Config.Mem+ConstraintE {
+				failed = true
+				i = j
+				break
+			}
+		}
+		if !failed {
+			newScoreAdd := float64(0)
+			for j := i; j < i+job.Config.ExecMinutes; j++ {
+				score := newScores[j-startTimeMin]
+				if score == 0 {
+					newScores[j-startTimeMin] = m.CalcCpuCostOne(m.Cpu[j] + job.Cpu)
+				}
+				newScoreAdd += newScores[j-startTimeMin] - currentScores[j-startTimeMin]
+			}
+			if newScoreAdd < minScoreAdd {
+				minScoreAdd = newScoreAdd
+				minStartMinutes = i
+				ok = true
+			}
+		}
+	}
+
+	return ok, minStartMinutes, minScoreAdd
 }
