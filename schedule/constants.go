@@ -4,6 +4,7 @@ package schedule
 const JobScheduleCpuLimitStep = 0.005 //任务调度水平线上移步长
 const JobPackCpu = 2                  //任务打包Cpu上限
 const JobPackMem = 4                  //任务打包Mem上限
+const JobPackLimit = 320000           //任务打包限制，总数低于此不打包
 const ScaleLimitH1 = 1.01             //实例最优机器数量增长-统计因子Cpu
 const ScaleLimitH2 = 1.1              //实例最优机器数量增长-统计因子Cpu
 const ScaleLimitH3 = 1.2              //实例最优机器数量增长-统计因子Cpu

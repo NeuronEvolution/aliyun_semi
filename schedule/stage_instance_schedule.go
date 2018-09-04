@@ -1,10 +1,6 @@
 package schedule
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"os"
 	"sync"
 )
 
@@ -123,65 +119,6 @@ func (r *ResourceManagement) instanceDeployCheckMachinesScale() (machineCountAll
 	r.log("instanceDeployCheckMachinesScale h1=%4d,h2=%4d,h3=%4d,count=%4d\n", h1, h2, h3, count)
 
 	return count
-}
-
-func (r *ResourceManagement) saveInstanceMoveCommands(moveCommands []*InstanceMoveCommand) {
-	data, err := json.Marshal(moveCommands)
-	if err != nil {
-		r.log("saveInstanceMoveCommands failed,%s\n", err.Error())
-		return
-	}
-
-	err = ioutil.WriteFile(r.OutputDir+"/save.json", data, os.ModePerm)
-	if err != nil {
-		r.log("saveInstanceMoveCommands failed,%s\n", err.Error())
-		return
-	}
-
-	r.log("saveInstanceMoveCommands ok,commandCount=%d\n", len(moveCommands))
-
-	return
-}
-
-func (r *ResourceManagement) loadInstanceMoveCommands() (moveCommands []*InstanceMoveCommand, err error) {
-	data, err := ioutil.ReadFile(r.OutputDir + "/save.json")
-	if err != nil {
-		r.log("loadInstanceMoveCommands ReadFile failed,%s\n", err.Error())
-		return
-	}
-
-	err = json.Unmarshal(data, &moveCommands)
-	if err != nil {
-		r.log("loadInstanceMoveCommands json.Unmarshal failed,%s\n", err.Error())
-		return
-	}
-
-	//初始状态部署
-	for _, config := range r.InstanceDeployConfigList {
-		instance := r.InstanceMap[config.InstanceId]
-		m := r.MachineMap[config.MachineId]
-		m.AddInstance(instance)
-		r.DeployMap[instance.InstanceId] = m
-	}
-
-	//迁移
-	for _, move := range moveCommands {
-		//fmt.Println(move.Round, move.InstanceId, move.MachineId)
-		instance := r.InstanceMap[move.InstanceId]
-		r.DeployMap[instance.InstanceId].RemoveInstance(instance.InstanceId)
-		m := r.MachineMap[move.MachineId]
-		if !m.ConstraintCheck(instance, 1) {
-			return nil,
-				fmt.Errorf("loadInstanceMoveCommands ConstraintCheck failed machineId=%d,instanceId=%d",
-					m.MachineId, instance.InstanceId)
-		}
-		m.AddInstance(instance)
-		r.DeployMap[instance.InstanceId] = m
-	}
-
-	r.log("loadInstanceMoveCommands ok,totalScore=%f\n", MachinesGetScore(r.MachineList))
-
-	return moveCommands, nil
 }
 
 func (r *ResourceManagement) instanceSchedule() (err error) {

@@ -8,16 +8,18 @@ import (
 )
 
 type JobScheduler struct {
-	R        *ResourceManagement
-	Machines []*Machine
+	R             *ResourceManagement
+	Machines      []*Machine
+	ScheduleState []*JobScheduleState
 
 	limits [1024]int //纪录各水平线部署的任务数量
 }
 
-func NewJobScheduler(r *ResourceManagement, machines []*Machine) (s *JobScheduler) {
+func NewJobScheduler(r *ResourceManagement, machines []*Machine, scheduleState []*JobScheduleState) (s *JobScheduler) {
 	s = &JobScheduler{}
 	s.R = r
 	s.Machines = machines
+	s.ScheduleState = scheduleState
 
 	return s
 }
@@ -100,21 +102,18 @@ func (s *JobScheduler) parallelBestFit(
 func (s *JobScheduler) bestFitJobs(machines []*Machine, jobs []*Job) (result []*Machine, err error) {
 	result = machines
 
-	//调度状态
-	scheduleState := NewJobScheduleState(s.R, s.R.JobList)
-
 	//BFD
 	for i, job := range jobs {
 		if i > 0 && i%1000 == 0 {
 			s.R.log("bestFitJobs %d\n", i)
 		}
 
-		minStartMinutes, minMachine := s.parallelBestFit(machines, job, scheduleState)
+		minStartMinutes, minMachine := s.parallelBestFit(machines, job, s.ScheduleState)
 		if minMachine == nil {
 			return nil, fmt.Errorf("bestFitJobs failed")
 		}
 		job.StartMinutes = minStartMinutes
-		scheduleState[job.Config.JobId].UpdateTime()
+		s.ScheduleState[job.Config.JobId].UpdateTime()
 		minMachine.AddJob(job)
 	}
 

@@ -56,11 +56,13 @@ func (r *ResourceManagement) output(
 	costReal := MachinesGetScoreReal(machines)
 	summaryBuf := bytes.NewBufferString("")
 	summaryBuf.WriteString(fmt.Sprintf("%f\n", costReal))
+	summaryBuf.WriteString(fmt.Sprintf("totalMachineCount=%d\n", totalMachineCount))
+	summaryBuf.WriteString(fmt.Sprintf("InstanceDeployScore=%f\n", r.InstanceDeployScore))
+	summaryBuf.WriteString(fmt.Sprintf("JobPackCpu=%d,JobPackMem=%d\n", JobPackCpu, JobPackMem))
+	summaryBuf.WriteString(fmt.Sprintf("JobScheduleCpuLimitStep=%f\n", JobScheduleCpuLimitStep))
 	summaryBuf.WriteString(fmt.Sprintf("timeCost=%f\n", timeCost))
 	summaryBuf.WriteString(fmt.Sprintf("file=%s\n", outputFile))
-	summaryBuf.WriteString(fmt.Sprintf("JobScheduleCpuLimitStep=%f\n", JobScheduleCpuLimitStep))
-	summaryBuf.WriteString(fmt.Sprintf("instanceMachineCount=%d,totalMachineCount=%d\n",
-		r.DeployedMachineCount, totalMachineCount))
+	summaryBuf.WriteString(fmt.Sprintf("instanceMachineCount=%d\n", r.DeployedMachineCount))
 	summaryBuf.WriteString(fmt.Sprintf("instanceMoveCommand=%d\n", len(instanceMoveCommands)))
 	summaryBuf.WriteString(fmt.Sprintf("jobDeployCommands=%d,totalJobCount=%d,jobWithInstance=%d\n",
 		len(jobDeployCommands), totalJobCount, totalJobWithInstance))

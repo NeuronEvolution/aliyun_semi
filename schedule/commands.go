@@ -7,8 +7,9 @@ type InstanceMoveCommand struct {
 }
 
 type JobDeployCommand struct {
-	JobId        string
-	MachineId    int
-	Count        int
-	StartMinutes int
+	JobInstanceId int    `json:"job_instance_id"`
+	JobId         string `json:"job_id"`
+	MachineId     int    `json:"machine_id"`
+	Count         int    `json:"count"`
+	StartMinutes  int    `json:"start_minutes"`
 }
