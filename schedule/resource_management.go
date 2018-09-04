@@ -115,7 +115,7 @@ func (r *ResourceManagement) createInstances() (instanceList []*Instance, instan
 
 //任务打包部署
 func (r *ResourceManagement) getPackCount(c *JobConfig, totalJobCount int) (count int) {
-	if totalJobCount < 320000 {
+	if totalJobCount < 640000 {
 		return 1
 	}
 
