@@ -4,6 +4,7 @@ import (
 	"math"
 	"sort"
 	"sync"
+	"time"
 )
 
 type JobMerge struct {
@@ -102,6 +103,7 @@ func (s *JobMerge) Run(outputCallback func() (err error)) (err error) {
 	s.R.log("JobMerge.Run machineCount=%d,totalScore=%f\n", len(s.Machines), initialScore)
 
 	for {
+		start := time.Now()
 		s.R.JobMergeRound++
 		moved := 0
 		for i, m := range s.Machines {
@@ -151,8 +153,8 @@ func (s *JobMerge) Run(outputCallback func() (err error)) (err error) {
 			}
 		}
 
-		s.R.log("JobMerge.Run round=%d,moved=%d,initialScore=%f,score=%f\n",
-			s.R.JobMergeRound, moved, initialScore, MachinesGetScore(s.Machines))
+		s.R.log("JobMerge.Run round=%d,moved=%d,time=%f,initialScore=%f,score=%f\n",
+			s.R.JobMergeRound, moved, time.Now().Sub(start).Seconds(), initialScore, MachinesGetScore(s.Machines))
 
 		err := outputCallback()
 		if err != nil {

@@ -8,6 +8,7 @@
     - 降低纯任务机器CPU上限
     - job峰值平滑处理
     - 尝试再降低cpuLimitStep
+    - job merge round load save
 # 其他
     - E数据下限应该在8400左右，不要过度优化，重点放在离线调度上
 # 纪录
