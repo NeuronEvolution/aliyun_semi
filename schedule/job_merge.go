@@ -102,6 +102,8 @@ func (s *JobMerge) Run(outputCallback func() (err error)) (err error) {
 	initialScore := MachinesGetScore(s.Machines)
 	s.R.log("JobMerge.Run machineCount=%d,totalScore=%f\n", len(s.Machines), initialScore)
 
+	s.R.loadJobMergeRound(s.Machines, s.ScheduleState)
+
 	for {
 		start := time.Now()
 		s.R.JobMergeRound++
@@ -149,12 +151,14 @@ func (s *JobMerge) Run(outputCallback func() (err error)) (err error) {
 				//fmt.Println("merge new", MachinesGetScore(s.Machines))
 
 				//每轮只处理一个，避免过度优化
-				break
+				//break
 			}
 		}
 
 		s.R.log("JobMerge.Run round=%d,moved=%d,time=%f,initialScore=%f,score=%f\n",
 			s.R.JobMergeRound, moved, time.Now().Sub(start).Seconds(), initialScore, MachinesGetScore(s.Machines))
+
+		s.R.saveJobMergeRound(s.Machines)
 
 		err := outputCallback()
 		if err != nil {

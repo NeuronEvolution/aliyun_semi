@@ -7,6 +7,11 @@ import (
 	"os"
 )
 
+type JobMergeRoundData struct {
+	Round    int                 `json:"round"`
+	Commands []*JobDeployCommand `json:"commands"`
+}
+
 func (r *ResourceManagement) getInstanceSaveFilepath() string {
 	return r.OutputDir + fmt.Sprintf("/save_%d.json", r.GetDatasetMachineCount())
 }
@@ -15,13 +20,13 @@ func (r *ResourceManagement) loadInstanceMoveCommands() (moveCommands []*Instanc
 	data, err := ioutil.ReadFile(r.getInstanceSaveFilepath())
 	if err != nil {
 		r.log("loadInstanceMoveCommands ReadFile failed,%s\n", err.Error())
-		return
+		return nil, err
 	}
 
 	err = json.Unmarshal(data, &moveCommands)
 	if err != nil {
 		r.log("loadInstanceMoveCommands json.Unmarshal failed,%s\n", err.Error())
-		return
+		return nil, err
 	}
 
 	//初始状态部署
@@ -100,13 +105,13 @@ func (r *ResourceManagement) loadJobDeployCommands(
 	data, err := ioutil.ReadFile(r.getJobDeploySaveFilepath())
 	if err != nil {
 		r.log("loadJobDeployCommands ReadFile failed,%s\n", err.Error())
-		return
+		return nil, err
 	}
 
 	err = json.Unmarshal(data, &commands)
 	if err != nil {
 		r.log("loadJobDeployCommands json.Unmarshal failed,%s\n", err.Error())
-		return
+		return nil, err
 	}
 
 	for _, cmd := range commands {
@@ -139,5 +144,68 @@ func (r *ResourceManagement) saveJobDeployCommands(commands []*JobDeployCommand)
 		return
 	}
 
-	r.log("saveJobDeployCommands ok,commandCount=%d,file=%s\n", len(commands), r.getJobDeploySaveFilepath())
+	r.log("saveJobDeployCommands ok,file=%s\n", r.getJobDeploySaveFilepath())
+}
+
+func (r *ResourceManagement) getJobMergeSaveFilepath() string {
+	return r.getJobDeploySaveFilepath() + "_merge.json"
+}
+
+func (r *ResourceManagement) loadJobMergeRound(machines []*Machine, scheduleState []*JobScheduleState) {
+	data, err := ioutil.ReadFile(r.getJobMergeSaveFilepath())
+	if err != nil {
+		r.log("loadJobMergeCommands ReadFile failed,%s\n", err.Error())
+		return
+	}
+
+	roundData := JobMergeRoundData{}
+	err = json.Unmarshal(data, &roundData)
+	if err != nil {
+		r.log("loadJobMergeCommands json.Unmarshal failed,%s\n", err.Error())
+		return
+	}
+
+	deployMap := make(map[int]*JobDeployCommand)
+	for _, cmd := range roundData.Commands {
+		deployMap[cmd.JobInstanceId] = cmd
+	}
+	machineMap := make(map[int]*Machine)
+	for _, m := range machines {
+		machineMap[m.MachineId] = m
+	}
+
+	r.JobMergeRound = roundData.Round
+	for _, m := range machines {
+		for _, job := range JobsCopy(m.JobList[:m.JobListCount]) {
+			cmd := deployMap[job.JobInstanceId]
+			if cmd.MachineId != m.MachineId || cmd.StartMinutes != job.StartMinutes {
+				m.RemoveJob(job.JobInstanceId)
+				job.StartMinutes = cmd.StartMinutes
+				scheduleState[job.Config.JobId].UpdateTime()
+				machineMap[cmd.MachineId].AddJob(job)
+			}
+		}
+	}
+
+	r.log("loadJobMergeRound ok,round=%d\n", r.JobMergeRound)
+
+	return
+}
+
+func (r *ResourceManagement) saveJobMergeRound(machines []*Machine) {
+	commands := r.buildJobDeployCommands(machines)
+	roundData := &JobMergeRoundData{Round: r.JobMergeRound, Commands: commands}
+	data, err := json.Marshal(roundData)
+	if err != nil {
+		r.log("saveJobMergeRound failed,%s\n", err.Error())
+		return
+	}
+
+	err = ioutil.WriteFile(r.getJobMergeSaveFilepath(), data, os.ModePerm)
+	if err != nil {
+		r.log("saveJobMergeRound failed,%s\n", err.Error())
+		return
+	}
+
+	r.log("saveJobMergeRound ok,file=%s\n", r.getJobMergeSaveFilepath())
 }

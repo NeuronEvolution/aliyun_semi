@@ -5,7 +5,6 @@
     - 后面的任务不打包
     - Job Best Fit 并行搜索
     - 降低Job打包粒度
-    - 降低纯任务机器CPU上限
     - job峰值平滑处理
     - 尝试再降低cpuLimitStep
     - job merge round load save
