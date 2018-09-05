@@ -3,6 +3,7 @@ package schedule
 import (
 	"math"
 	"sort"
+	"sync"
 )
 
 type JobMerge struct {
@@ -20,9 +21,9 @@ func NewJobMerge(r *ResourceManagement, machines []*Machine, scheduleState []*Jo
 	return s
 }
 
-func (s *JobMerge) bestFit(machines []*Machine, job *Job) (bestMachine *Machine, bestStartTime int) {
+func (s *JobMerge) bestFit(machines []*Machine, job *Job) (bestMachine *Machine, bestStartTime int, minScoreAdd float64) {
 	var minScoreAddMachine *Machine
-	minScoreAdd := math.MaxFloat64
+	minScoreAdd = math.MaxFloat64
 	bestStartTime = TimeSampleCount * 15
 	startTimeMin, startTimeMax, _, _ := job.RecursiveGetTimeRange(s.ScheduleState)
 	for _, m := range machines {
@@ -33,10 +34,10 @@ func (s *JobMerge) bestFit(machines []*Machine, job *Job) (bestMachine *Machine,
 
 		update := false
 		if scoreAdd < minScoreAdd {
-			//fmt.Println("bestfit scoreAdd < minScoreAdd", scoreAdd, minScoreAdd, startMinutes, m.MachineId)
+			//fmt.Println("bestFit scoreAdd < minScoreAdd", scoreAdd, minScoreAdd, startMinutes, m.MachineId)
 			update = true
 		} else if scoreAdd == minScoreAdd {
-			//fmt.Println("bestfit scoreAdd == minScoreAdd", scoreAdd, minScoreAdd, startMinutes, m.MachineId)
+			//fmt.Println("bestFit scoreAdd == minScoreAdd", scoreAdd, minScoreAdd, startMinutes, m.MachineId)
 			if startMinutes < bestStartTime {
 				update = true
 			}
@@ -50,7 +51,50 @@ func (s *JobMerge) bestFit(machines []*Machine, job *Job) (bestMachine *Machine,
 
 	//fmt.Println("bestFit", minScoreAdd, bestStartTime, minScoreAddMachine.MachineId)
 
-	return minScoreAddMachine, bestStartTime
+	return minScoreAddMachine, bestStartTime, minScoreAdd
+}
+
+func (s *JobMerge) parallelBestFit(
+	machines []*Machine, job *Job) (
+	bestMachine *Machine, bestStartTime int, minScoreAdd float64) {
+
+	minScoreAdd = math.MaxFloat64
+
+	//分割机器，并发BestFit
+	const parallelCount = ParallelCpuCount * 2
+	var bestMachineList [parallelCount]*Machine
+	var bestStartTimeList [parallelCount]int
+	var minScoreAddList [parallelCount]float64
+	size := len(machines) / parallelCount
+
+	wg := &sync.WaitGroup{}
+	for pI := 0; pI < parallelCount; pI++ {
+		start := pI * size
+		count := size
+		if pI == parallelCount-1 {
+			count = len(machines) - start
+		}
+		wg.Add(1)
+		go func(index int, subMachines []*Machine) {
+			defer wg.Done()
+
+			bestMachineList[index], bestStartTimeList[index], minScoreAddList[index] = s.bestFit(subMachines, job)
+		}(pI, machines[start:start+count])
+	}
+	wg.Wait()
+	for i, v := range bestMachineList {
+		if v == nil {
+			continue
+		}
+
+		if minScoreAddList[i] < minScoreAdd {
+			minScoreAdd = minScoreAddList[i]
+			bestMachine = bestMachineList[i]
+			bestStartTime = bestStartTimeList[i]
+		}
+	}
+
+	return bestMachine, bestStartTime, minScoreAdd
 }
 
 func (s *JobMerge) Run(outputCallback func() (err error)) (err error) {
@@ -82,7 +126,7 @@ func (s *JobMerge) Run(outputCallback func() (err error)) (err error) {
 			for _, job := range jobs {
 				m.RemoveJob(job.JobInstanceId)
 				//fmt.Println("remove", MachinesGetScore(s.Machines))
-				bestMachine, bestStartTime := s.bestFit(s.Machines, job)
+				bestMachine, bestStartTime, _ := s.parallelBestFit(s.Machines, job)
 				//跳过最佳位置是原来的位置
 				if bestMachine == m && bestStartTime == job.StartMinutes {
 					m.AddJob(job)
