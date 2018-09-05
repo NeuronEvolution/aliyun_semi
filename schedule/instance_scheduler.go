@@ -293,7 +293,7 @@ func (r *ResourceManagement) instanceSchedule() (err error) {
 			totalLoop++
 
 			SortMachineByCpuCost(r.MachineList[:r.DeployedMachineCount])
-			machinesByCpu := r.randomMachines(r.MachineList[:r.DeployedMachineCount], 32, pTableBigSmall, pTableSmallBig)
+			machinesByCpu := r.randomMachines(r.MachineList[:r.DeployedMachineCount], ParallelCpuCount*4, pTableBigSmall, pTableSmallBig)
 			ok := r.scheduleMachines(machinesByCpu, deadLoop)
 			if !ok {
 				r.log("instanceSchedule scale=%2d dead loop=%8d,totalLoop=%8d\n", scaleCount, deadLoop, totalLoop)
