@@ -57,6 +57,7 @@ func (r *ResourceManagement) output(
 	summaryBuf := bytes.NewBufferString("")
 	summaryBuf.WriteString(fmt.Sprintf("%f\n", costReal))
 	summaryBuf.WriteString(fmt.Sprintf("totalMachineCount=%d\n", totalMachineCount))
+	summaryBuf.WriteString(fmt.Sprintf("JobMergeRound=%d\n", r.JobMergeRound))
 	summaryBuf.WriteString(fmt.Sprintf("InstanceDeployScore=%f\n", r.InstanceDeployScore))
 	summaryBuf.WriteString(fmt.Sprintf("JobPackCpu=%d,JobPackMem=%d\n", JobPackCpu, JobPackMem))
 	summaryBuf.WriteString(fmt.Sprintf("JobScheduleCpuLimitStep=%f\n", JobScheduleCpuLimitStep))

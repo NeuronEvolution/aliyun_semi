@@ -36,6 +36,7 @@ type ResourceManagement struct {
 	JobMap               []*Job
 	JobDeployMap         []*Machine
 	InstanceDeployScore  float64 //实例部署阶段的得分，用于数据分析
+	JobMergeRound        int
 }
 
 func NewResourceManagement(

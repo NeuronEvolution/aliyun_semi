@@ -98,13 +98,15 @@ func (s *JobMerge) parallelBestFit(
 }
 
 func (s *JobMerge) Run(outputCallback func() (err error)) (err error) {
-	s.R.log("JobMerge.Run totalScore=%f\n", MachinesGetScore(s.Machines))
+	initialScore := MachinesGetScore(s.Machines)
+	s.R.log("JobMerge.Run machineCount=%d,totalScore=%f\n", len(s.Machines), initialScore)
 
 	for {
-		moved := false
+		s.R.JobMergeRound++
+		moved := 0
 		for i, m := range s.Machines {
 			if i > 0 && i%100 == 0 {
-				s.R.log("JobMerge.Run %d,totalScore=%f\n", i, MachinesGetScore(s.Machines))
+				s.R.log("JobMerge.Run round=%d,index=%d,totalScore=%f\n", s.R.JobMergeRound, i, MachinesGetScore(s.Machines))
 			}
 
 			if m.JobListCount == 0 {
@@ -140,7 +142,7 @@ func (s *JobMerge) Run(outputCallback func() (err error)) (err error) {
 				job.StartMinutes = bestStartTime
 				s.ScheduleState[job.Config.JobId].UpdateTime()
 				bestMachine.AddJob(job)
-				moved = true
+				moved++
 
 				//fmt.Println("merge new", MachinesGetScore(s.Machines))
 
@@ -149,17 +151,21 @@ func (s *JobMerge) Run(outputCallback func() (err error)) (err error) {
 			}
 		}
 
+		s.R.log("JobMerge.Run round=%d,moved=%d,initialScore=%f,score=%f\n",
+			s.R.JobMergeRound, moved, initialScore, MachinesGetScore(s.Machines))
+
 		err := outputCallback()
 		if err != nil {
 			return err
 		}
 
-		if !moved {
+		if moved == 0 {
 			break
 		}
 	}
 
-	s.R.log("JobMerge.Run ok totalScore=%f\n", MachinesGetScore(s.Machines))
+	s.R.log("JobMerge.Run ok round=%d,initialScore=%f,score=%f\n",
+		s.R.JobMergeRound, initialScore, MachinesGetScore(s.Machines))
 
 	return nil
 }
