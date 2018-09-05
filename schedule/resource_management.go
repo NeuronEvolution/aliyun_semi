@@ -246,6 +246,22 @@ func (r *ResourceManagement) GetDatasetMachineCount() int {
 	}
 }
 
+func (r *ResourceManagement) GetDatasetInstanceLoop() int {
+	if r.Dataset == "a" {
+		return MachineALoop
+	} else if r.Dataset == "b" {
+		return MachineBLoop
+	} else if r.Dataset == "c" {
+		return MachineCLoop
+	} else if r.Dataset == "d" {
+		return MachineDLoop
+	} else if r.Dataset == "e" {
+		return MachineELoop
+	} else {
+		return 0
+	}
+}
+
 func (r *ResourceManagement) Run() (err error) {
 	//todo 为节约时间，这里不再自动探测最佳机器数量
 	r.DeployedMachineCount = r.GetDatasetMachineCount()

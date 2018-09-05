@@ -13,7 +13,7 @@ type JobMergeRoundData struct {
 }
 
 func (r *ResourceManagement) getInstanceSaveFilepath() string {
-	return r.OutputDir + fmt.Sprintf("/save_%d.json", r.GetDatasetMachineCount())
+	return r.OutputDir + fmt.Sprintf("/save_%d_%d.json", r.GetDatasetMachineCount(), r.GetDatasetInstanceLoop())
 }
 
 func (r *ResourceManagement) loadInstanceMoveCommands() (moveCommands []*InstanceMoveCommand, err error) {
@@ -95,8 +95,8 @@ func (r *ResourceManagement) buildJobDeployCommands(machines []*Machine) (comman
 }
 
 func (r *ResourceManagement) getJobDeploySaveFilepath() string {
-	return r.OutputDir + fmt.Sprintf("/save_%d_job_%f_%d_%d_%d.json",
-		r.GetDatasetMachineCount(), JobScheduleCpuLimitStep, JobPackCpu, JobPackMem, JobPackLimit)
+	return r.OutputDir + fmt.Sprintf("/save_%d_%d_job_%f_%d_%d_%d.json",
+		r.GetDatasetMachineCount(), r.GetDatasetInstanceLoop(), JobScheduleCpuLimitStep, JobPackCpu, JobPackMem, JobPackLimit)
 }
 
 func (r *ResourceManagement) loadJobDeployCommands(

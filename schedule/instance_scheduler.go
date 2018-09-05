@@ -287,10 +287,7 @@ func (r *ResourceManagement) instanceSchedule() (err error) {
 					//todo fix
 					return nil
 				}
-			} else if (r.Dataset == "a" && totalLoop > MachineALoop) ||
-				(r.Dataset == "b" && totalLoop > MachineBLoop) ||
-				(r.Dataset == "c" && totalLoop > MachineCLoop) ||
-				(r.Dataset == "d" && totalLoop > MachineDLoop) {
+			} else if totalLoop > r.GetDatasetInstanceLoop() {
 				return nil
 			}
 			totalLoop++
