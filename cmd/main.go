@@ -53,7 +53,7 @@ func main() {
 	//go run(appResourceConfigMap, appInferenceConfigMap, "b")
 	//go run(appResourceConfigMap, appInferenceConfigMap, "c")
 	//go run(appResourceConfigMap, appInferenceConfigMap, "d")
-	//go run(appResourceConfigMap, appInferenceConfigMap, "e")
+	go run(appResourceConfigMap, appInferenceConfigMap, "e")
 
 	for {
 		err := output()

@@ -271,6 +271,32 @@ func (r *ResourceManagement) instanceDeployCheckMachinesScale() (machineCountAll
 	return count
 }
 
+func (r *ResourceManagement) tryOutputE() {
+	machines := MachinesCloneWithInstances(r.MachineList)
+
+	instanceMoveCommands, err := NewInstanceMerge(r).Run()
+	if err != nil {
+		r.log("tryOutputE merge failed,err=%s\n", err.Error())
+		return
+	}
+
+	jobDeployCommands := make([]*JobDeployCommand, 0)
+
+	//验证结果
+	err = NewReplay(r, instanceMoveCommands, jobDeployCommands).Run()
+	if err != nil {
+		r.log("tryOutputE replay failed,err=%s\n", err.Error())
+		return
+	}
+
+	//输出结果
+	err = r.output(machines, instanceMoveCommands, jobDeployCommands)
+	if err != nil {
+		r.log("tryOutputE output failed,err=%s\n", err.Error())
+		return
+	}
+}
+
 func (r *ResourceManagement) instanceSchedule() (err error) {
 	startCost := MachinesGetScore(r.MachineList)
 	totalLoop := 0
@@ -283,9 +309,8 @@ func (r *ResourceManagement) instanceSchedule() (err error) {
 		deadLoop := 0
 		for ; ; loop++ {
 			if r.Dataset == "e" {
-				if totalLoop > 0 && totalLoop%128 == 0 && currentCost < 8460 {
-					//todo fix
-					return nil
+				if totalLoop > 0 && totalLoop%128 == 0 && currentCost < 8450 {
+					r.tryOutputE()
 				}
 			} else if totalLoop > r.GetDatasetInstanceLoop() {
 				return nil
