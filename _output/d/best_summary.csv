@@ -1,0 +1,12 @@
+6590.440705
+totalMachineCount=5700
+JobMergeRound=7
+InstanceDeployScore=6515.505975
+JobPackCpu=1,JobPackMem=2
+JobScheduleCpuLimitStep=0.005000
+timeCost=26570.417957
+file=./_output/d/20180906_055526
+instanceMachineCount=5700
+instanceMoveCommand=87062
+jobDeployCommands=91037,totalJobCount=91037,jobWithInstance=0
+cost=6589.439784,realCost=6590.440705

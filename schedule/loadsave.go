@@ -114,16 +114,16 @@ func (r *ResourceManagement) loadJobDeployCommands(
 		return nil, err
 	}
 
+	machineMap := make(map[int]*Machine)
+	for _, m := range machines {
+		machineMap[m.MachineId] = m
+	}
+
 	for _, cmd := range commands {
 		job := r.JobMap[cmd.JobInstanceId]
 		job.StartMinutes = cmd.StartMinutes
 		scheduleState[job.Config.JobId].UpdateTime()
-		for _, m := range machines {
-			if m.MachineId == cmd.MachineId {
-				m.AddJob(job)
-				break
-			}
-		}
+		machineMap[cmd.MachineId].AddJob(job)
 	}
 
 	r.log("loadJobDeployCommands ok,totalScore=%f,file=%s\n", MachinesGetScore(machines), r.getJobDeploySaveFilepath())

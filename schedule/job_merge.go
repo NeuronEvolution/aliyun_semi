@@ -62,7 +62,7 @@ func (s *JobMerge) parallelBestFit(
 	minScoreAdd = math.MaxFloat64
 
 	//分割机器，并发BestFit
-	const parallelCount = ParallelCpuCount * 2
+	const parallelCount = ParallelCpuCount
 	var bestMachineList [parallelCount]*Machine
 	var bestStartTimeList [parallelCount]int
 	var minScoreAddList [parallelCount]float64
@@ -104,13 +104,18 @@ func (s *JobMerge) Run(outputCallback func() (err error)) (err error) {
 
 	s.R.loadJobMergeRound(s.Machines, s.ScheduleState)
 
+	minSize := 1024
+	size := minSize
 	for {
 		start := time.Now()
 		s.R.JobMergeRound++
 		moved := 0
+		targetMachines := MachinesCopy(s.Machines)
+		SortMachineByCpuCost(targetMachines)
 		for i, m := range s.Machines {
 			if i > 0 && i%100 == 0 {
-				s.R.log("JobMerge.Run round=%d,index=%d,totalScore=%f\n", s.R.JobMergeRound, i, MachinesGetScore(s.Machines))
+				s.R.log("JobMerge.Run round=%d,size=%d,index=%d,totalScore=%f\n",
+					s.R.JobMergeRound, size, i, MachinesGetScore(s.Machines))
 			}
 
 			if m.JobListCount == 0 {
@@ -130,9 +135,21 @@ func (s *JobMerge) Run(outputCallback func() (err error)) (err error) {
 			})
 
 			for _, job := range jobs {
+				oldScore := m.GetCpuCost()
 				m.RemoveJob(job.JobInstanceId)
+				scoreAdd := oldScore - m.GetCpuCost()
 				//fmt.Println("remove", MachinesGetScore(s.Machines))
-				bestMachine, bestStartTime, _ := s.parallelBestFit(s.Machines, job)
+				bestMachine, bestStartTime, minScoreAdd := s.parallelBestFit(targetMachines[len(targetMachines)-size:], job)
+				if bestMachine == nil {
+					m.AddJob(job)
+					continue
+				}
+
+				if minScoreAdd > scoreAdd {
+					m.AddJob(job)
+					continue
+				}
+
 				//跳过最佳位置是原来的位置
 				if bestMachine == m && bestStartTime == job.StartMinutes {
 					m.AddJob(job)
@@ -150,13 +167,12 @@ func (s *JobMerge) Run(outputCallback func() (err error)) (err error) {
 
 				//fmt.Println("merge new", MachinesGetScore(s.Machines))
 
-				//每轮只处理一个，避免过度优化
-				//break
+				//每轮只处理有限个，避免过度优化
 			}
 		}
 
-		s.R.log("JobMerge.Run round=%d,moved=%d,time=%f,initialScore=%f,score=%f\n",
-			s.R.JobMergeRound, moved, time.Now().Sub(start).Seconds(), initialScore, MachinesGetScore(s.Machines))
+		s.R.log("JobMerge.Run round=%d,size=%d,moved=%d,time=%f,initialScore=%f,score=%f\n",
+			s.R.JobMergeRound, size, moved, time.Now().Sub(start).Seconds(), initialScore, MachinesGetScore(s.Machines))
 
 		s.R.saveJobMergeRound(s.Machines)
 
@@ -166,7 +182,14 @@ func (s *JobMerge) Run(outputCallback func() (err error)) (err error) {
 		}
 
 		if moved == 0 {
-			break
+			if size == len(s.Machines) {
+				break
+			}
+
+			size = size * 2
+			if size > len(s.Machines) {
+				size = len(s.Machines)
+			}
 		}
 	}
 
