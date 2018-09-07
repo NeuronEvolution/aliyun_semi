@@ -117,12 +117,12 @@ func (r *ResourceManagement) createInstances() (instanceList []*Instance, instan
 
 //任务打包部署
 func (r *ResourceManagement) getPackCount(c *JobConfig, totalJobCount int) (count int) {
-	if totalJobCount < JobPackLimit {
+	if totalJobCount < JobPackLimit/2 {
 		return 1
 	}
 
-	maxCpu := float64(JobPackCpu)
-	maxMem := float64(JobPackMem)
+	maxCpu := float64(JobPackCpu * 2)
+	maxMem := float64(JobPackMem * 2)
 
 	if c.Cpu >= maxCpu {
 		return 1
