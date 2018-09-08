@@ -300,6 +300,7 @@ func (r *ResourceManagement) Run() (err error) {
 			return err
 		}
 		r.InstanceScheduleSeconds = time.Now().Sub(startTime).Seconds()
+		r.log("InstanceScheduleSeconds=%f\n", r.InstanceScheduleSeconds)
 
 		startTime = time.Now()
 		//之后实例不再调度，先计算出实例迁移指令
@@ -308,6 +309,7 @@ func (r *ResourceManagement) Run() (err error) {
 			return err
 		}
 		r.InstanceMergeSeconds = time.Now().Sub(startTime).Seconds()
+		r.log("InstanceMergeSeconds=%f\n", r.InstanceMergeSeconds)
 
 		//保存迁移指令
 		r.saveInstanceMoveCommands(instanceMoveCommands)
@@ -335,7 +337,8 @@ func (r *ResourceManagement) Run() (err error) {
 		r.JobDeploySeconds = time.Now().Sub(startTime).Seconds()
 		r.JobDeployTotalSeconds = time.Now().Sub(r.StartTime).Seconds()
 		r.JobDeployScore = MachinesGetScore(machines)
-		r.log("jobSchedule totalScore=%f\n", r.JobDeployScore)
+		r.log("jobSchedule JobDeploySeconds=%f,JobDeployTotalSeconds=%f,totalScore=%f\n",
+			r.JobDeployScore, r.JobDeploySeconds, r.JobDeployTotalSeconds)
 
 		//构造任务调度指令
 		jobDeployCommandsInitial = r.buildJobDeployCommands(machines)
