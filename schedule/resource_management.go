@@ -21,22 +21,27 @@ type ResourceManagement struct {
 	Dataset                  string
 
 	//Status
-	Rand                 *rand.Rand
-	StartTime            time.Time
-	MaxJobInstanceId     int
-	MachineList          []*Machine
-	MachineMap           []*Machine
-	MaxMachineId         int
-	DeployedMachineCount int
-	InstanceList         []*Instance
-	InstanceMap          []*Instance
-	MaxInstanceId        int
-	DeployMap            []*Machine
-	JobList              []*Job
-	JobMap               []*Job
-	JobDeployMap         []*Machine
-	InstanceDeployScore  float64 //实例部署阶段的得分，用于数据分析
-	JobMergeRound        int
+	Rand                    *rand.Rand
+	StartTime               time.Time
+	MaxJobInstanceId        int
+	MachineList             []*Machine
+	MachineMap              []*Machine
+	MaxMachineId            int
+	DeployedMachineCount    int
+	InstanceList            []*Instance
+	InstanceMap             []*Instance
+	MaxInstanceId           int
+	DeployMap               []*Machine
+	JobList                 []*Job
+	JobMap                  []*Job
+	JobDeployMap            []*Machine
+	InstanceDeployScore     float64 //实例部署阶段的得分
+	InstanceScheduleSeconds float64 //实例调度时间
+	InstanceMergeSeconds    float64 //实例迁移时间
+	JobDeployScore          float64 //任务部署得分
+	JobDeploySeconds        float64 //任务部署时间
+	JobDeployTotalSeconds   float64 //任务部署结束时总时间
+	JobMergeRound           int
 }
 
 func NewResourceManagement(
@@ -117,12 +122,12 @@ func (r *ResourceManagement) createInstances() (instanceList []*Instance, instan
 
 //任务打包部署
 func (r *ResourceManagement) getPackCount(c *JobConfig, totalJobCount int) (count int) {
-	if totalJobCount < JobPackLimit/2 {
+	if totalJobCount < JobPackLimit {
 		return 1
 	}
 
-	maxCpu := float64(JobPackCpu * 2)
-	maxMem := float64(JobPackMem * 2)
+	maxCpu := float64(JobPackCpu)
+	maxMem := float64(JobPackMem)
 
 	if c.Cpu >= maxCpu {
 		return 1
@@ -279,6 +284,7 @@ func (r *ResourceManagement) Run() (err error) {
 	instanceMoveCommands, err := r.loadInstanceMoveCommands()
 	if err != nil {
 		//初始化部署实例
+		startTime := time.Now()
 		if r.Dataset == "e" {
 			err = r.initE()
 		} else {
@@ -293,12 +299,15 @@ func (r *ResourceManagement) Run() (err error) {
 		if err != nil {
 			return err
 		}
+		r.InstanceScheduleSeconds = time.Now().Sub(startTime).Seconds()
 
+		startTime = time.Now()
 		//之后实例不再调度，先计算出实例迁移指令
 		instanceMoveCommands, err = NewInstanceMerge(r).Run()
 		if err != nil {
 			return err
 		}
+		r.InstanceMergeSeconds = time.Now().Sub(startTime).Seconds()
 
 		//保存迁移指令
 		r.saveInstanceMoveCommands(instanceMoveCommands)
@@ -318,12 +327,15 @@ func (r *ResourceManagement) Run() (err error) {
 	jobDeployCommandsInitial, err := r.loadJobDeployCommands(machines, scheduleState)
 	if err != nil {
 		//任务调度
-		//err = r.firstFitJobs(machines)
+		startTime := time.Now()
 		err = NewJobScheduler(r, machines[:r.DeployedMachineCount], scheduleState).Run()
 		if err != nil {
 			return err
 		}
-		r.log("jobSchedule totalScore=%f\n", MachinesGetScore(machines))
+		r.JobDeploySeconds = time.Now().Sub(startTime).Seconds()
+		r.JobDeployTotalSeconds = time.Now().Sub(r.StartTime).Seconds()
+		r.JobDeployScore = MachinesGetScore(machines)
+		r.log("jobSchedule totalScore=%f\n", r.JobDeployScore)
 
 		//构造任务调度指令
 		jobDeployCommandsInitial = r.buildJobDeployCommands(machines)
@@ -332,7 +344,7 @@ func (r *ResourceManagement) Run() (err error) {
 		r.saveJobDeployCommands(jobDeployCommandsInitial)
 	}
 
-	//对Job部署精调
+	//对Job部署优化
 	return NewJobMerge(r, machines[:r.DeployedMachineCount], scheduleState).Run(func() (err error) {
 		jobDeployCommands := r.buildJobDeployCommands(machines)
 

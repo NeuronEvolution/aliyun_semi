@@ -313,7 +313,7 @@ func (m *Machine) GetMaxCpuTimeWithJobs() (maxCpu float64, maxCpuTime int, jobs 
 	return maxCpu, maxCpuTime, jobs
 }
 
-func (m *Machine) bestFitJob(job *Job, startTimeMin int, startTimeMax int) (ok bool, minStartMinutes int, minScoreAdd float64) {
+func (m *Machine) BestFitJob(job *Job, startTimeMin int, startTimeMax int) (ok bool, minStartMinutes int, minScoreAdd float64) {
 	timeCount := startTimeMax + job.Config.ExecMinutes - startTimeMin
 	currentScores := make([]float64, timeCount)
 	newScores := make([]float64, timeCount)

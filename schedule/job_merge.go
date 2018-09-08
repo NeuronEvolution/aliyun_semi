@@ -28,7 +28,7 @@ func (s *JobMerge) bestFit(machines []*Machine, job *Job) (bestMachine *Machine,
 	bestStartTime = TimeSampleCount * 15
 	startTimeMin, startTimeMax, _, _ := job.RecursiveGetTimeRange(s.ScheduleState)
 	for _, m := range machines {
-		ok, startMinutes, scoreAdd := m.bestFitJob(job, startTimeMin, startTimeMax)
+		ok, startMinutes, scoreAdd := m.BestFitJob(job, startTimeMin, startTimeMax)
 		if !ok {
 			continue
 		}

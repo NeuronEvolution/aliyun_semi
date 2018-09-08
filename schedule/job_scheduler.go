@@ -136,6 +136,7 @@ func (s *JobScheduler) bestFitJobs(machines []*Machine, jobs []*Job) (result []*
 }
 
 //任务部署都能部署到实例机器上，基本上不需要自动伸缩部署任务
+//这段代码主要是用来实验任务单独部署所需的机器数量
 func (s *JobScheduler) RunOld() (err error) {
 	s.R.log("JobScheduler.Run\n")
 	if len(s.R.JobList) == 0 {

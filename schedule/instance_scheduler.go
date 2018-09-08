@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-//优化两台机器的实例－随机部署
+//优化两台机器的实例－随机部署，不要使用，虽然能够快速下降，单下降到一定限度后比较慢
 func (r *ResourceManagement) InstanceDeployRandomBest(machines []*Machine, instances []*Instance) (bestPos []int, bestCost float64) {
 	random := rand.New(rand.NewSource(int64(len(instances))))
 
@@ -56,11 +56,8 @@ func (r *ResourceManagement) InstanceDeployRandomBest(machines []*Machine, insta
 	return bestPos, bestCost
 }
 
+//todo 可以前若干个随机，剩余的穷举，避免错过更多
 func (r *ResourceManagement) InstanceDeployForceBest(machines []*Machine, instances []*Instance, deadLoop int) (bestPos []int, bestCost float64) {
-	if deadLoop == 0 && r.Dataset != "e" {
-		//return r.InstanceDeployRandomBest(machines, instances)
-	}
-
 	e := deadLoop
 	if e > 8 {
 		e = 8
@@ -189,7 +186,7 @@ func (r *ResourceManagement) scheduleTwoMachine(machines []*Machine, deadLoop in
 	return true
 }
 
-func (r *ResourceManagement) scheduleMachines(machines []*Machine, deadLoop int) (has bool) {
+func (r *ResourceManagement) parallelScheduleMachines(machines []*Machine, deadLoop int) (has bool) {
 	//两两分组并行调度
 	wg := &sync.WaitGroup{}
 	max := len(machines)
@@ -319,7 +316,7 @@ func (r *ResourceManagement) instanceSchedule() (err error) {
 
 			SortMachineByCpuCost(r.MachineList[:r.DeployedMachineCount])
 			machinesByCpu := r.randomMachines(r.MachineList[:r.DeployedMachineCount], ParallelCpuCount*4, pTableBigSmall, pTableSmallBig)
-			ok := r.scheduleMachines(machinesByCpu, deadLoop)
+			ok := r.parallelScheduleMachines(machinesByCpu, deadLoop)
 			if !ok {
 				r.log("instanceSchedule scale=%2d dead loop=%8d,totalLoop=%8d\n", scaleCount, deadLoop, totalLoop)
 				deadLoop++
