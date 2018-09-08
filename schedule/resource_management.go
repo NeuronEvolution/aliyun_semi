@@ -338,7 +338,7 @@ func (r *ResourceManagement) Run() (err error) {
 		r.JobDeployTotalSeconds = time.Now().Sub(r.StartTime).Seconds()
 		r.JobDeployScore = MachinesGetScore(machines)
 		r.log("jobSchedule JobDeploySeconds=%f,JobDeployTotalSeconds=%f,totalScore=%f\n",
-			r.JobDeployScore, r.JobDeploySeconds, r.JobDeployTotalSeconds)
+			r.JobDeploySeconds, r.JobDeployTotalSeconds, r.JobDeployScore)
 
 		//构造任务调度指令
 		jobDeployCommandsInitial = r.buildJobDeployCommands(machines)

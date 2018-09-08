@@ -153,32 +153,34 @@ func (r *ResourceManagement) InstanceDeployForceBest(machines []*Machine, instan
 
 func (r *ResourceManagement) scheduleTwoMachine(machines []*Machine, deadLoop int) (ok bool) {
 	instances := make([]*Instance, 0)
-	for _, m := range machines {
+	pos := make([]int, 0)
+	for i, m := range machines {
 		instances = append(instances, m.InstanceList[:m.InstanceListCount]...)
-	}
-
-	cost := float64(0)
-	for _, m := range machines {
-		cost += m.GetCpuCost()
+		for j := 0; j < m.InstanceListCount; j++ {
+			pos = append(pos, i)
+		}
 	}
 
 	bestPos, bestCost := r.InstanceDeployForceBest(machines, instances, deadLoop)
-	if bestCost >= cost {
+	if bestCost >= MachinesGetScore(machines) {
 		return false
 	}
 
-	//将所有实例迁出
-	for _, m := range machines {
-		for _, inst := range InstancesCopy(m.InstanceList[:m.InstanceListCount]) {
-			m.RemoveInstance(inst.InstanceId)
+	//将需要移动的实例迁出
+	for i, instance := range instances {
+		if bestPos[i] == pos[i] {
+			continue
 		}
+		machines[pos[i]].RemoveInstance(instance.InstanceId)
 	}
 
+	//迁入目标机器
 	for i, instance := range instances {
-		m := machines[bestPos[i]]
-		if !m.ConstraintCheck(instance, m.Config.Cpu) {
-			panic("ConstraintCheck")
+		if bestPos[i] == pos[i] {
+			continue
 		}
+
+		m := machines[bestPos[i]]
 		m.AddInstance(instance)
 		r.DeployMap[instance.InstanceId] = m
 	}
@@ -302,7 +304,7 @@ func (r *ResourceManagement) instanceSchedule() (err error) {
 		r.log("instanceSchedule scale=%2d start cost=%f\n", scaleCount, currentCost)
 		pTableBigSmall := randBigSmall(r.DeployedMachineCount)
 		pTableSmallBig := randSmallBig(r.DeployedMachineCount)
-		loop := 0
+		loop := 1
 		deadLoop := 0
 		for ; ; loop++ {
 			if r.Dataset == "e" {
@@ -315,16 +317,21 @@ func (r *ResourceManagement) instanceSchedule() (err error) {
 			totalLoop++
 
 			SortMachineByCpuCost(r.MachineList[:r.DeployedMachineCount])
-			machinesByCpu := r.randomMachines(r.MachineList[:r.DeployedMachineCount], ParallelCpuCount*4, pTableBigSmall, pTableSmallBig)
+			machinesByCpu := r.randomMachines(r.MachineList[:r.DeployedMachineCount], 64, pTableBigSmall, pTableSmallBig)
 			ok := r.parallelScheduleMachines(machinesByCpu, deadLoop)
 			if !ok {
-				r.log("instanceSchedule scale=%2d dead loop=%8d,totalLoop=%8d\n", scaleCount, deadLoop, totalLoop)
+				if deadLoop > 16 {
+					r.log("instanceSchedule scale=%2d dead loop=%8d,totalLoop=%8d\n", scaleCount, deadLoop, totalLoop)
+				}
 				deadLoop++
 				continue
 			}
 			deadLoop = 0
-			r.log("instanceSchedule scale=%2d loop=%8d,totalLoop=%8d %d %f %f\n",
-				scaleCount, loop, totalLoop, r.DeployedMachineCount, startCost, MachinesGetScore(r.MachineList))
+
+			if totalLoop > 0 && totalLoop%100 == 0 {
+				r.log("instanceSchedule scale=%2d loop=%8d,totalLoop=%8d %d %f %f\n",
+					scaleCount, loop, totalLoop, r.DeployedMachineCount, startCost, MachinesGetScore(r.MachineList))
+			}
 		}
 	}
 

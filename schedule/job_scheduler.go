@@ -51,7 +51,7 @@ func (s *JobScheduler) parallelBestFit(
 	minStartMinutes = TimeSampleCount * 15
 
 	//分割机器，并发BestFit
-	const parallelCount = ParallelCpuCount * 2
+	const parallelCount = ParallelCpuCount * 4
 	var minStartMinutesList [parallelCount]int
 	for i := 0; i < parallelCount; i++ {
 		minStartMinutesList[i] = TimeSampleCount * 15

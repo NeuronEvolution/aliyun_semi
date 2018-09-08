@@ -62,7 +62,7 @@ func (s *JobMerge) parallelBestFit(
 	minScoreAdd = math.MaxFloat64
 
 	//分割机器，并发BestFit
-	const parallelCount = ParallelCpuCount
+	const parallelCount = ParallelCpuCount * 4
 	var bestMachineList [parallelCount]*Machine
 	var bestStartTimeList [parallelCount]int
 	var minScoreAddList [parallelCount]float64
@@ -99,6 +99,11 @@ func (s *JobMerge) parallelBestFit(
 }
 
 func (s *JobMerge) Run(outputCallback func() (err error)) (err error) {
+	err = outputCallback()
+	if err != nil {
+		return err
+	}
+
 	initialScore := MachinesGetScore(s.Machines)
 	s.R.log("JobMerge.Run machineCount=%d,totalScore=%f\n", len(s.Machines), initialScore)
 
