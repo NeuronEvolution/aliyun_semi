@@ -58,6 +58,7 @@ func (r *ResourceManagement) output(
 	summaryBuf.WriteString(fmt.Sprintf("%f\n", costReal))
 	summaryBuf.WriteString(fmt.Sprintf("输出文件路径=%s\n", outputFile))
 	summaryBuf.WriteString(fmt.Sprintf("机器数量=%d\n", totalMachineCount))
+	summaryBuf.WriteString(fmt.Sprintf("实例迭代次数=%d\n", r.GetDatasetInstanceLoop()))
 	summaryBuf.WriteString(fmt.Sprintf("实际得分=%f\n", costReal))
 	summaryBuf.WriteString(fmt.Sprintf("查表得分=%f\n", MachinesGetScore(machines)))
 	summaryBuf.WriteString(fmt.Sprintf("实例部署得分=%f\n", r.InstanceDeployScore))

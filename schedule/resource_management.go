@@ -21,27 +21,29 @@ type ResourceManagement struct {
 	Dataset                  string
 
 	//Status
-	Rand                    *rand.Rand
-	StartTime               time.Time
-	MaxJobInstanceId        int
-	MachineList             []*Machine
-	MachineMap              []*Machine
-	MaxMachineId            int
-	DeployedMachineCount    int
-	InstanceList            []*Instance
-	InstanceMap             []*Instance
-	MaxInstanceId           int
-	DeployMap               []*Machine
-	JobList                 []*Job
-	JobMap                  []*Job
-	JobDeployMap            []*Machine
-	InstanceDeployScore     float64 //实例部署阶段的得分
-	InstanceScheduleSeconds float64 //实例调度时间
-	InstanceMergeSeconds    float64 //实例迁移时间
-	JobDeployScore          float64 //任务部署得分
-	JobDeploySeconds        float64 //任务部署时间
-	JobDeployTotalSeconds   float64 //任务部署结束时总时间
-	JobMergeRound           int
+	Rand                      *rand.Rand
+	StartTime                 time.Time
+	MaxJobInstanceId          int
+	MachineList               []*Machine
+	MachineMap                []*Machine
+	MaxMachineId              int
+	DeployedMachineCount      int
+	InstanceList              []*Instance
+	InstanceMap               []*Instance
+	MaxInstanceId             int
+	DeployMap                 []*Machine
+	JobList                   []*Job
+	JobMap                    []*Job
+	JobDeployMap              []*Machine
+	InstanceDeployScore       float64 //实例部署阶段的得分
+	InstanceScheduleSeconds   float64 //实例调度时间
+	InstanceMergeSeconds      float64 //实例迁移时间
+	JobDeployScore            float64 //任务部署得分
+	JobDeploySeconds          float64 //任务部署时间
+	JobDeployTotalSeconds     float64 //任务部署结束时总时间
+	JobMergeRound             int
+	InstanceScheduleStartTime time.Time
+	InstanceMergeStartTime    time.Time
 }
 
 func NewResourceManagement(
@@ -284,7 +286,7 @@ func (r *ResourceManagement) Run() (err error) {
 	instanceMoveCommands, err := r.loadInstanceMoveCommands()
 	if err != nil {
 		//初始化部署实例
-		startTime := time.Now()
+		r.InstanceScheduleStartTime = time.Now()
 		if r.Dataset == "e" {
 			err = r.initE()
 		} else {
@@ -299,16 +301,16 @@ func (r *ResourceManagement) Run() (err error) {
 		if err != nil {
 			return err
 		}
-		r.InstanceScheduleSeconds = time.Now().Sub(startTime).Seconds()
+		r.InstanceScheduleSeconds = time.Now().Sub(r.InstanceScheduleStartTime).Seconds()
 		r.log("InstanceScheduleSeconds=%f\n", r.InstanceScheduleSeconds)
 
-		startTime = time.Now()
+		r.InstanceMergeStartTime = time.Now()
 		//之后实例不再调度，先计算出实例迁移指令
 		instanceMoveCommands, err = NewInstanceMerge(r).Run()
 		if err != nil {
 			return err
 		}
-		r.InstanceMergeSeconds = time.Now().Sub(startTime).Seconds()
+		r.InstanceMergeSeconds = time.Now().Sub(r.InstanceMergeStartTime).Seconds()
 		r.log("InstanceMergeSeconds=%f\n", r.InstanceMergeSeconds)
 
 		//保存迁移指令

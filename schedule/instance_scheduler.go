@@ -4,9 +4,10 @@ import (
 	"math"
 	"math/rand"
 	"sync"
+	"time"
 )
 
-//优化两台机器的实例－随机部署，不要使用，虽然能够快速下降，单下降到一定限度后比较慢
+//优化两台机器的实例－随机部署，不要使用，虽然能够快速下降，但下降到一定限度后比较慢
 func (r *ResourceManagement) InstanceDeployRandomBest(machines []*Machine, instances []*Instance) (bestPos []int, bestCost float64) {
 	random := rand.New(rand.NewSource(int64(len(instances))))
 
@@ -276,13 +277,19 @@ func (r *ResourceManagement) instanceDeployCheckMachinesScale() (machineCountAll
 }
 
 func (r *ResourceManagement) tryOutputE() {
+	r.InstanceScheduleSeconds = time.Now().Sub(r.InstanceScheduleStartTime).Seconds()
+
 	machines := MachinesCloneWithInstances(r.MachineList)
 
+	r.InstanceMergeStartTime = time.Now()
 	instanceMoveCommands, err := NewInstanceMerge(r).Run()
 	if err != nil {
 		r.log("tryOutputE merge failed,err=%s\n", err.Error())
 		return
 	}
+	r.InstanceMergeSeconds = time.Now().Sub(r.InstanceMergeStartTime).Seconds()
+
+	r.InstanceDeployScore = MachinesGetScore(machines)
 
 	jobDeployCommands := make([]*JobDeployCommand, 0)
 
@@ -313,7 +320,7 @@ func (r *ResourceManagement) instanceSchedule() (err error) {
 		deadLoop := 0
 		for ; ; loop++ {
 			if r.Dataset == "e" {
-				if totalLoop > 0 && totalLoop%128 == 0 && currentCost < 8450 {
+				if totalLoop >= r.GetDatasetInstanceLoop() && totalLoop%128 == 0 /*&& currentCost < 8450*/ {
 					r.tryOutputE()
 				}
 			} else if totalLoop > r.GetDatasetInstanceLoop() {
