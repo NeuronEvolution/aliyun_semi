@@ -161,8 +161,13 @@ func (r *ResourceManagement) scheduleTwoMachine(machines []*Machine, deadLoop in
 		}
 	}
 
+	cost := float64(0)
+	for _, m := range machines {
+		cost += m.GetCpuCost()
+	}
+
 	bestPos, bestCost := r.InstanceDeployForceBest(machines, instances, deadLoop)
-	if bestCost >= MachinesGetScore(machines) {
+	if bestCost >= cost {
 		return false
 	}
 
