@@ -1,4 +1,4 @@
-package schedule
+package main
 
 func InstancesCopy(p []*Instance) (r []*Instance) {
 	if p == nil {

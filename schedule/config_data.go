@@ -1,4 +1,4 @@
-package schedule
+package main
 
 type AppInterferenceConfig struct {
 	AppId1       int

@@ -1,4 +1,4 @@
-package schedule
+package main
 
 type MachineConfig struct {
 	Cpu  float64

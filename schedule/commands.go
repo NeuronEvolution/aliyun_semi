@@ -1,4 +1,4 @@
-package schedule
+package main
 
 type InstanceMoveCommand struct {
 	Round      int `json:"round"`

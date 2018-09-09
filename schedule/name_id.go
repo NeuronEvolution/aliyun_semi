@@ -1,4 +1,4 @@
-package schedule
+package main
 
 //用于将字符串Id转换为整数Id
 type NameId struct {

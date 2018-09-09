@@ -1,4 +1,4 @@
-package schedule
+package main
 
 func MachinesCopy(p []*Machine) (r []*Machine) {
 	if p == nil {

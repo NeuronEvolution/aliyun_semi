@@ -1,4 +1,4 @@
-package schedule
+package main
 
 func ConstraintCheckAppInterference(c *AppCountCollection, m [][]int) bool {
 	//debugLog("constraintCheckAppInterference %v", c.List[:c.ListCount])

@@ -1,4 +1,4 @@
-package schedule
+package main
 
 func recursiveInitInitJobTimeRangeMin(config *JobConfig) {
 	if config.TimeRangeMinInitialized {

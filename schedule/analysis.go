@@ -1,4 +1,4 @@
-package schedule
+package main
 
 func (r *ResourceManagement) analysis() {
 	jobTrees := 0

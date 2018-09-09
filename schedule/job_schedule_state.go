@@ -1,4 +1,4 @@
-package schedule
+package main
 
 type JobScheduleState struct {
 	Jobs      []*Job

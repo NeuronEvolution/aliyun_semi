@@ -1,4 +1,4 @@
-package schedule
+package main
 
 //todo base从均值相关的值开始，step再降低
 const JobScheduleCpuLimitStep = 0.005 //任务调度水平线上移步长

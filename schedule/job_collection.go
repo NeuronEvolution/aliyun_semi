@@ -1,4 +1,4 @@
-package schedule
+package main
 
 func JobsCopy(p []*Job) (r []*Job) {
 	if p == nil {
