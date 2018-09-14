@@ -140,9 +140,9 @@ func main() {
 		return
 	}
 
-	//go run(appResourceConfigMap, appInferenceConfigMap, "a")
+	go run(appResourceConfigMap, appInferenceConfigMap, "a")
 	//go run(appResourceConfigMap, appInferenceConfigMap, "b")
-	go run(appResourceConfigMap, appInferenceConfigMap, "c")
+	//go run(appResourceConfigMap, appInferenceConfigMap, "c")
 	//go run(appResourceConfigMap, appInferenceConfigMap, "d")
 	//go run(appResourceConfigMap, appInferenceConfigMap, "e")
 

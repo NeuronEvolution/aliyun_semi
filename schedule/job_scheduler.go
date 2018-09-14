@@ -104,7 +104,7 @@ func (s *JobScheduler) bestFitJobs(machines []*Machine, jobs []*Job) (result []*
 
 	//BFD
 	for i, job := range jobs {
-		if i > 0 && i%1000 == 0 {
+		if i > 0 && i%10000 == 0 {
 			s.R.log("bestFitJobs %d\n", i)
 		}
 

@@ -165,10 +165,10 @@ func (o *InstanceMerge) roundFirst() {
 	moveTemp := 0
 	moveRest := 0
 	moveFreezing := 0
-	for i, instance := range o.InstanceList {
-		if i > 0 && i%10000 == 0 {
-			o.R.log("InstanceMerge.roundFirst 1 %d\n", i)
-		}
+	for _, instance := range o.InstanceList {
+		//if i > 0 && i%10000 == 0 {
+		//	o.R.log("InstanceMerge.roundFirst 1 %d\n", i)
+		//}
 
 		currentMachine := o.DeployMap[instance.InstanceId]
 		targetMachineId := o.FinalDeployMap[instance.InstanceId]
@@ -269,10 +269,10 @@ func (o *InstanceMerge) roundFirst() {
 	moveOther := 0
 	moveRest = 0
 	lastFitPos := 0
-	for i, instance := range o.InstanceList {
-		if i > 0 && i%10000 == 0 {
-			o.R.log("InstanceMerge.roundFirst 2 %d\n", i)
-		}
+	for _, instance := range o.InstanceList {
+		//if i > 0 && i%10000 == 0 {
+		//	o.R.log("InstanceMerge.roundFirst 2 %d\n", i)
+		//}
 
 		currentMachine := o.DeployMap[instance.InstanceId]
 		targetMachineId := o.FinalDeployMap[instance.InstanceId]
@@ -374,10 +374,10 @@ func (o *InstanceMerge) roundSecond() {
 	moveFreezing := 0
 	moveSuccess := 0
 	moveRest := 0
-	for i, instance := range o.InstanceList {
-		if i > 0 && i%10000 == 0 {
-			o.R.log("InstanceMerge.roundSecond 1 %d\n", i)
-		}
+	for _, instance := range o.InstanceList {
+		//if i > 0 && i%10000 == 0 {
+		//	o.R.log("InstanceMerge.roundSecond 1 %d\n", i)
+		//}
 
 		currentMachine := o.DeployMap[instance.InstanceId]
 		targetMachineId := o.FinalDeployMap[instance.InstanceId]
@@ -444,10 +444,10 @@ func (o *InstanceMerge) roundSecond() {
 	moveKeep := 0
 	moveOther := 0
 	moveRest = 0
-	for i, instance := range o.InstanceList {
-		if i > 0 && i%10000 == 0 {
-			o.R.log("InstanceMerge.roundSecond 2 %d\n", i)
-		}
+	for _, instance := range o.InstanceList {
+		//if i > 0 && i%10000 == 0 {
+		//	o.R.log("InstanceMerge.roundSecond 2 %d\n", i)
+		//}
 
 		currentMachine := o.DeployMap[instance.InstanceId]
 		targetMachineId := o.FinalDeployMap[instance.InstanceId]
@@ -539,10 +539,10 @@ func (o *InstanceMerge) roundFinal() (err error) {
 	moveAlready := 0
 	moveSuccess := 0
 	moveRest := 0
-	for i, instance := range o.InstanceList {
-		if i > 0 && i%10000 == 0 {
-			o.R.log("InstanceMerge.roundFinal %d\n", i)
-		}
+	for _, instance := range o.InstanceList {
+		//if i > 0 && i%10000 == 0 {
+		//	o.R.log("InstanceMerge.roundFinal %d\n", i)
+		//}
 
 		currentMachine := o.DeployMap[instance.InstanceId]
 		targetMachineId := o.FinalDeployMap[instance.InstanceId]
