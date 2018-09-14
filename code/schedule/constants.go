@@ -59,11 +59,11 @@ const MachineD = 6000 //机器D数量
 //8000|8448.281015
 const MachineE = 8000 //机器E数量
 
-const MachineALoop = 1024 //实例调度迭代次数A//todo 改为根据迭代效果和时间等条件来终止迭代
-const MachineBLoop = 256  //实例调度迭代次数B
-const MachineCLoop = 512  //实例调度迭代次数C
-const MachineDLoop = 512  //实例调度迭代次数D
-const MachineELoop = 64   //数据E没有Job，无限迭代
+const MachineALoop = 4096  //实例调度迭代次数A//todo 改为根据迭代效果和时间等条件来终止迭代
+const MachineBLoop = 4096  //实例调度迭代次数B
+const MachineCLoop = 32768 //实例调度迭代次数C
+const MachineDLoop = 32768 //实例调度迭代次数D
+const MachineELoop = 8192  //数据E没有Job，无限迭代
 
 const TimeSampleCount = 98             //实例时间点数量
 const MaxInstancePerMachine = 256      //单每机器最大实例数

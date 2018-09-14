@@ -118,14 +118,18 @@ func (s *JobScheduler) bestFitJobs(machines []*Machine, jobs []*Job) (result []*
 	}
 
 	jobWithInstanceCount := 0
+	totalScore := float64(0)
 	for _, m := range result {
+		if m.InstanceListCount > 0 || m.JobListCount > 0 {
+			totalScore += m.GetCpuCost()
+		}
+
 		if m.InstanceListCount > 0 {
 			jobWithInstanceCount += m.JobListCount
 		}
 	}
-
 	s.R.log("bestFitJobs totalScore=%f,jobWithInstanceCount=%d,machineCount=%d\n",
-		MachinesGetScore(result), jobWithInstanceCount, len(result))
+		totalScore, jobWithInstanceCount, len(result))
 	fmt.Println(s.limits)
 
 	return result, nil

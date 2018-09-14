@@ -271,12 +271,10 @@ func (m *Machine) CanFirstFitJob(job *Job, startTimeMin int, startTimeMax int, c
 	//fmt.Printf("checkMachineAddJob %d,%d,%d,%d,%d,%d,%d\n",
 	//	m.MachineId, job.JobInstanceId, job.Config.ExecMinutes, startTimeMin, startTimeMax)
 
-	cpuMax := m.Config.Cpu*cpuRatio + ConstraintE
-	memMax := m.Config.Mem + ConstraintE
 	for i := startTimeMin; i <= startTimeMax; i++ {
 		failed := false
 		for j := i; j < i+job.Config.ExecMinutes; j++ {
-			if m.Cpu[j]+job.Cpu > cpuMax || m.Mem[j]+job.Mem > memMax {
+			if m.Cpu[j]+job.Cpu > m.Config.Cpu*cpuRatio+ConstraintE || m.Mem[j]+job.Mem > m.Config.Mem+ConstraintE {
 				failed = true
 				i = j
 				break
@@ -325,14 +323,12 @@ func (m *Machine) BestFitJob(job *Job, startTimeMin int, startTimeMax int) (ok b
 		currentScores[i-startTimeMin] = m.CalcCpuCostOne(m.Cpu[i])
 	}
 
-	cpuMax := m.Config.Cpu + ConstraintE
-	memMax := m.Config.Mem + ConstraintE
 	minScoreAdd = math.MaxFloat64
 	minStartMinutes = -1
 	for i := startTimeMin; i <= startTimeMax; i++ {
 		failed := false
 		for j := i; j < i+job.Config.ExecMinutes; j++ {
-			if m.Cpu[j]+job.Cpu > cpuMax || m.Mem[j]+job.Mem > memMax {
+			if m.Cpu[j]+job.Cpu > m.Config.Cpu+ConstraintE || m.Mem[j]+job.Mem > m.Config.Mem+ConstraintE {
 				failed = true
 				i = j
 				break
