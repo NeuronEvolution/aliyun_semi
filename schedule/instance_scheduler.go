@@ -59,11 +59,7 @@ func (r *ResourceManagement) instanceDeployRandomBest(machines []*Machine, insta
 
 //todo 可以前若干个随机，剩余的穷举，避免错过更多
 func (r *ResourceManagement) instanceDeployForceBest(machines []*Machine, instances []*Instance, deadLoop int) (bestPos []int, bestCost float64) {
-	e := deadLoop
-	if e > 8 {
-		e = 8
-	}
-	totalLoopLimit := 1024 * 8 * int(math.Pow(float64(2), float64(e)))
+	totalLoopLimit := 1024 * 8
 
 	machineCount := len(machines)
 	instanceCount := len(instances)
@@ -448,6 +444,9 @@ func (r *ResourceManagement) instanceSchedule() (err error) {
 			if !ok {
 				if deadLoop > 16 {
 					r.log("instanceSchedule scale=%2d dead loop=%8d,totalLoop=%8d\n", scaleCount, deadLoop, totalLoop)
+					if deadLoop > 32 {
+						return nil
+					}
 				}
 				deadLoop++
 				continue

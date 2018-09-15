@@ -104,6 +104,9 @@ func (s *JobMerge) Run(outputCallback func() (err error)) (err error) {
 		return err
 	}
 
+	//todo 这里注释掉，后面的步骤代价太高，收益太小，考虑其他方案优化
+	return nil
+
 	initialScore := MachinesGetScore(s.Machines)
 	s.R.log("JobMerge.Run machineCount=%d,totalScore=%f\n", len(s.Machines), initialScore)
 

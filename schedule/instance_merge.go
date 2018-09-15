@@ -233,7 +233,7 @@ func (o *InstanceMerge) roundFirst() {
 					break
 				}
 			}
-			if !moved { //todo
+			if !moved {
 				moveRest++
 			}
 		}

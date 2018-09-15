@@ -213,18 +213,6 @@ func (r *ResourceManagement) init() (err error) {
 	return nil
 }
 
-//e数据单独初始化，直接使用初始状态
-func (r *ResourceManagement) initE() (err error) {
-	r.DeployedMachineCount = 8000
-	for _, config := range r.InstanceDeployConfigList {
-		m := r.MachineMap[config.MachineId]
-		m.AddInstance(r.InstanceMap[config.InstanceId])
-		r.DeployMap[config.InstanceId] = m
-	}
-
-	return nil
-}
-
 func (r *ResourceManagement) beginOffline() {
 	//将计算点从实例的98点提升到98*15点
 	for _, m := range r.MachineList {
