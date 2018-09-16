@@ -434,7 +434,14 @@ func (r *ResourceManagement) instanceSchedule() (err error) {
 		deadLoop := 0
 		for ; ; loop++ {
 			if r.Dataset == "e" {
-				if totalLoop >= r.GetDatasetInstanceLoop() && totalLoop%1024 == 0 /*&& currentCost < 8450*/ {
+				if totalLoop == 0 ||
+					totalLoop == 128 ||
+					totalLoop == 256 ||
+					totalLoop == 512 ||
+					totalLoop == 1024 ||
+					totalLoop == 2048 ||
+					totalLoop%4096 == 0 {
+					r.InstanceTotalLoop = totalLoop
 					r.tryOutputE()
 				}
 			} else if totalLoop > r.GetDatasetInstanceLoop() {
@@ -448,7 +455,9 @@ func (r *ResourceManagement) instanceSchedule() (err error) {
 			if !ok {
 				if deadLoop > 16 {
 					r.log("instanceSchedule scale=%2d dead loop=%8d,totalLoop=%8d\n", scaleCount, deadLoop, totalLoop)
-					return nil
+					if r.Dataset != "e" {
+						return nil
+					}
 				}
 				deadLoop++
 				continue

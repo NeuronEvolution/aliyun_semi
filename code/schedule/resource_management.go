@@ -2,7 +2,6 @@ package main
 
 import (
 	"math/rand"
-	"sort"
 	"time"
 )
 
@@ -44,6 +43,7 @@ type ResourceManagement struct {
 	JobMergeRound             int
 	InstanceScheduleStartTime time.Time
 	InstanceMergeStartTime    time.Time
+	InstanceTotalLoop         int
 }
 
 func NewResourceManagement(
@@ -99,10 +99,6 @@ func (r *ResourceManagement) createMachines() (machineList []*Machine, machineMa
 		machineMap[m.MachineId] = m
 		machineList = append(machineList, m)
 	}
-
-	sort.Slice(machineList, func(i, j int) bool {
-		return machineList[i].Config.Cpu > machineList[j].Config.Cpu
-	})
 
 	return machineList, machineMap
 }
@@ -218,18 +214,6 @@ func (r *ResourceManagement) init() (err error) {
 	return nil
 }
 
-//e数据单独初始化，直接使用初始状态
-func (r *ResourceManagement) initE() (err error) {
-	r.DeployedMachineCount = 8000
-	for _, config := range r.InstanceDeployConfigList {
-		m := r.MachineMap[config.MachineId]
-		m.AddInstance(r.InstanceMap[config.InstanceId])
-		r.DeployMap[config.InstanceId] = m
-	}
-
-	return nil
-}
-
 func (r *ResourceManagement) beginOffline() {
 	//将计算点从实例的98点提升到98*15点
 	for _, m := range r.MachineList {
@@ -287,11 +271,7 @@ func (r *ResourceManagement) Run() (err error) {
 	if err != nil {
 		//初始化部署实例
 		r.InstanceScheduleStartTime = time.Now()
-		if r.Dataset == "e" {
-			err = r.initE()
-		} else {
-			err = r.firstFitInstances()
-		}
+		err = r.firstFitInstances()
 		if err != nil {
 			return err
 		}
@@ -319,9 +299,9 @@ func (r *ResourceManagement) Run() (err error) {
 
 	//todo 这里需要考虑在线迁移时的实例交换,改为从初始状态迁移后再部署任务.暂时不需要优化，除了e数据不需要固定实例
 	//重新插入实例，避免浮点精度问题
+	SortMachineByConfigAndCpuCost(r.MachineList)
 	machines := MachinesCloneWithInstances(r.MachineList)
 	r.log("jobSchedule init totalScore=%f\n", MachinesGetScore(machines))
-
 	r.InstanceDeployScore = MachinesGetScore(machines)
 
 	//任务全局调度状态
@@ -360,6 +340,7 @@ func (r *ResourceManagement) Run() (err error) {
 		}
 
 		//输出结果
+		r.InstanceTotalLoop = r.GetDatasetInstanceLoop()
 		return r.output(machines, instanceMoveCommands, jobDeployCommands)
 	})
 }

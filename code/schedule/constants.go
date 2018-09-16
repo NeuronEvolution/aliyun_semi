@@ -63,7 +63,7 @@ const MachineALoop = 4096  //实例调度迭代次数A//todo 改为根据迭代�
 const MachineBLoop = 4096  //实例调度迭代次数B
 const MachineCLoop = 32768 //实例调度迭代次数C
 const MachineDLoop = 32768 //实例调度迭代次数D
-const MachineELoop = 8192  //数据E没有Job，无限迭代
+const MachineELoop = 32768 //数据E没有Job，无限迭代
 
 const TimeSampleCount = 98             //实例时间点数量
 const MaxInstancePerMachine = 256      //单每机器最大实例数

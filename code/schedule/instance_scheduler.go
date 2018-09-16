@@ -8,7 +8,7 @@ import (
 )
 
 //优化两台机器的实例－随机部署，不要使用，虽然能够快速下降，但下降到一定限度后比较慢
-func (r *ResourceManagement) InstanceDeployRandomBest(machines []*Machine, instances []*Instance) (bestPos []int, bestCost float64) {
+func (r *ResourceManagement) instanceDeployRandomBest(machines []*Machine, instances []*Instance) (bestPos []int, bestCost float64) {
 	random := rand.New(rand.NewSource(int64(len(instances))))
 
 	machineCount := len(machines)
@@ -58,10 +58,10 @@ func (r *ResourceManagement) InstanceDeployRandomBest(machines []*Machine, insta
 }
 
 //todo 可以前若干个随机，剩余的穷举，避免错过更多
-func (r *ResourceManagement) InstanceDeployForceBest(machines []*Machine, instances []*Instance, deadLoop int) (bestPos []int, bestCost float64) {
+func (r *ResourceManagement) instanceDeployForceBest(machines []*Machine, instances []*Instance, deadLoop int) (bestPos []int, bestCost float64) {
 	e := deadLoop
-	if e > 8 {
-		e = 8
+	if e > 4 {
+		e = 4
 	}
 	totalLoopLimit := 1024 * 8 * int(math.Pow(float64(2), float64(e)))
 
@@ -76,7 +76,6 @@ func (r *ResourceManagement) InstanceDeployForceBest(machines []*Machine, instan
 	}
 
 	totalLoop := 0
-
 	for instanceIndex := 0; instanceIndex < instanceCount; instanceIndex++ {
 		instance := instances[instanceIndex]
 		added := false
@@ -152,6 +151,121 @@ func (r *ResourceManagement) InstanceDeployForceBest(machines []*Machine, instan
 	return bestPos, bestCost
 }
 
+func (r *ResourceManagement) instanceScheduleRandomThenForce(machines []*Machine, instances []*Instance) (bestPos []int, bestCost float64) {
+	random := rand.New(rand.NewSource(int64(len(instances))))
+
+	machineCount := len(machines)
+	instanceCount := len(instances)
+	pos := make([]int, instanceCount)
+	bestPos = make([]int, instanceCount)
+	bestCost = math.MaxFloat64
+
+	randomInstanceCount := instanceCount - 18
+	if randomInstanceCount < 0 {
+		randomInstanceCount = 0
+	}
+
+	loopMax := 1024
+	for loop := 0; loop < loopMax; loop++ {
+		//fmt.Println("loop", loop)
+		deploy := make([]*Machine, len(machines))
+		for i := 0; i < len(deploy); i++ {
+			deploy[i] = NewMachine(r, machines[i].MachineId, machines[i].Config)
+		}
+
+		//随机放置前几个
+		randomFailed := false
+		for instanceIndex := 0; instanceIndex < randomInstanceCount; instanceIndex++ {
+			instance := instances[instanceIndex]
+			machineIndex := random.Intn(machineCount)
+			m := deploy[machineIndex]
+			if !m.ConstraintCheck(instance, 1) {
+				randomFailed = true
+				break
+			}
+			m.AddInstance(instance)
+			pos[instanceIndex] = machineIndex
+		}
+		if randomFailed {
+			//fmt.Println("randomFailed")
+			continue
+		}
+
+		//穷举剩下的
+		for instanceIndex := randomInstanceCount; instanceIndex < instanceCount; instanceIndex++ {
+			instance := instances[instanceIndex]
+			added := false
+			for ; pos[instanceIndex] < machineCount; pos[instanceIndex]++ {
+				machineIndex := pos[instanceIndex]
+				m := deploy[machineIndex]
+				if !m.ConstraintCheck(instance, 1) {
+					continue
+				}
+				m.AddInstance(instance)
+				added = true
+				break
+			}
+			if added {
+				//有效解,回退
+				if instanceIndex == instanceCount-1 {
+					totalCost := float64(0)
+					for _, m := range deploy {
+						totalCost += m.GetCpuCost()
+					}
+
+					//最优解
+					//fmt.Println("BEST", bestCost, totalCost, pos)
+					if totalCost < bestCost {
+						bestCost = totalCost
+						for i, v := range pos {
+							bestPos[i] = v
+						}
+						//fmt.Println("BEST", bestCost, totalCost)
+						//fmt.Println(bestPos)
+					}
+
+					//回退
+					deploy[pos[instanceIndex]].RemoveInstance(instance.InstanceId)
+					pos[instanceIndex] = 0
+				}
+			} else {
+				//回退
+				pos[instanceIndex] = 0
+			}
+
+			end := false
+			if !added || instanceIndex == instanceCount-1 {
+				for {
+					//已到最后
+					instanceIndex--
+					if instanceIndex < randomInstanceCount {
+						end = true
+						break
+					}
+
+					deploy[pos[instanceIndex]].RemoveInstance(instances[instanceIndex].InstanceId)
+					pos[instanceIndex]++
+					if pos[instanceIndex] < machineCount {
+						//进位成功
+						instanceIndex--
+						break
+					} else {
+						pos[instanceIndex] = 0
+					}
+				}
+			}
+			if end {
+				//fmt.Println("end")
+				break
+			}
+		}
+
+		break
+	}
+
+	return bestPos, bestCost
+}
+
 func (r *ResourceManagement) scheduleTwoMachine(machines []*Machine, deadLoop int) (ok bool) {
 	instances := make([]*Instance, 0)
 	pos := make([]int, 0)
@@ -167,7 +281,7 @@ func (r *ResourceManagement) scheduleTwoMachine(machines []*Machine, deadLoop in
 		cost += m.GetCpuCost()
 	}
 
-	bestPos, bestCost := r.InstanceDeployForceBest(machines, instances, deadLoop)
+	bestPos, bestCost := r.instanceDeployForceBest(machines, instances, deadLoop)
 	if bestCost >= cost {
 		return false
 	}
@@ -320,7 +434,8 @@ func (r *ResourceManagement) instanceSchedule() (err error) {
 		deadLoop := 0
 		for ; ; loop++ {
 			if r.Dataset == "e" {
-				if totalLoop >= r.GetDatasetInstanceLoop() && totalLoop%128 == 0 /*&& currentCost < 8450*/ {
+				if totalLoop >= r.GetDatasetInstanceLoop() && totalLoop%4096 == 0 /*&& currentCost < 8450*/ {
+					r.InstanceTotalLoop = totalLoop
 					r.tryOutputE()
 				}
 			} else if totalLoop > r.GetDatasetInstanceLoop() {
@@ -334,6 +449,9 @@ func (r *ResourceManagement) instanceSchedule() (err error) {
 			if !ok {
 				if deadLoop > 16 {
 					r.log("instanceSchedule scale=%2d dead loop=%8d,totalLoop=%8d\n", scaleCount, deadLoop, totalLoop)
+					if r.Dataset != "e" {
+						return nil
+					}
 				}
 				deadLoop++
 				continue

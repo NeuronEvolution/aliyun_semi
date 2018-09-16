@@ -239,134 +239,15 @@ func (o *InstanceMerge) roundFirst() {
 		}
 	}
 
-	o.R.log("InstanceMerge.roundFirst 1,machines=%d,deployed=%d,free=%d,"+
-		"moveAlready=%d,moveSuccess=%d,moveTemp=%d，moveFreezing＝%d,moveRest=%d\n",
-		len(o.MachineList), len(o.DeployedMachineList), len(o.FreeMachineList),
-		moveAlready, moveSuccess, moveTemp, moveFreezing, moveRest)
-
-	//根据第二轮状态尝试将影响下轮回放的实例移开
-	nextMachineMap := make([]*Machine, o.R.MaxMachineId+1)
-	for i, m := range o.MachineMap {
-		if m != nil {
-			nextMachineMap[i] = NewMachine(m.R, m.MachineId, m.Config)
-		}
-	}
-	for instanceId, machineId := range o.FinalDeployMap {
-		if machineId > 0 {
-			//排除掉在临时机器中的实例
-			currentMachine := o.DeployMap[instanceId]
-			if o.FreeMachineMap[currentMachine.MachineId] != nil {
-				//continue#注释掉这里限制下轮的移动，避免第一轮过度移动
-			}
-
-			nextMachineMap[machineId].AddInstance(o.InstanceMap[instanceId])
-		}
-	}
-
-	moveAlready = 0
-	moveFreezing = 0
-	moveKeep := 0
-	moveOther := 0
-	moveRest = 0
-	machineCount := len(o.DeployedMachineList)
-	currentMachineIndex := 0 //next fit pos
-	for _, instance := range o.InstanceList {
-		//if i > 0 && i%10000 == 0 {
-		//	o.R.log("InstanceMerge.roundFirst 2 %d\n", i)
-		//}
-
-		currentMachine := o.DeployMap[instance.InstanceId]
-		targetMachineId := o.FinalDeployMap[instance.InstanceId]
-
-		//已经部署，直接跳过
-		if currentMachine.MachineId == targetMachineId {
-			moveAlready++
-			continue
-		}
-
-		//在临时机器中，本轮不移动
-		if o.FreeMachineMap[currentMachine.MachineId] != nil {
-			moveFreezing++
-			continue
-		}
-
-		//若不可保持位置，迁移走
-		nextCurrentMachine := nextMachineMap[currentMachine.MachineId]
-		if nextCurrentMachine.ConstraintCheck(instance, 1) {
-			//可以保持位置
-			nextCurrentMachine.AddInstance(instance)
-			moveKeep++
-		} else {
-			//迁移走
-			moved := false
-			for machineIndex := currentMachineIndex + 1; ; machineIndex++ {
-				if machineIndex == machineCount {
-					machineIndex = 0
-				}
-
-				if machineIndex == currentMachineIndex {
-					break
-				}
-
-				deployMachine := o.DeployedMachineList[machineIndex]
-				if deployMachine == currentMachine {
-					continue
-				}
-
-				if !deployMachine.ConstraintCheck(instance, 1) {
-					continue
-				}
-
-				nextDeployMachine := nextMachineMap[deployMachine.MachineId]
-				if !nextDeployMachine.ConstraintCheck(instance, 1) {
-					continue
-				}
-
-				//todo 这里应该
-
-				//迁移实例
-				currentMachine.RemoveInstance(instance.InstanceId)
-				deployMachine.AddInstance(instance)
-				o.DeployMap[instance.InstanceId] = deployMachine
-
-				//更新最终状态
-				nextDeployMachine.AddInstance(instance)
-
-				//留下幽灵
-				ghost := instance.CreateGhost()
-				currentMachine.AddInstance(ghost)
-				ghosts = append(ghosts, ghost)
-				ghostsDeploy = append(ghostsDeploy, currentMachine)
-
-				//纪录指令
-				o.MoveCommands = append(o.MoveCommands, &InstanceMoveCommand{
-					Round:      1,
-					InstanceId: instance.InstanceId,
-					MachineId:  deployMachine.MachineId,
-				})
-
-				//更新NextFit位置
-				currentMachineIndex = machineIndex
-
-				moveOther++
-				moved = true
-				break
-			}
-			if !moved {
-				moveRest++
-			}
-		}
-	}
-
 	//删除幽灵实例
 	for i, ghost := range ghosts {
 		ghostsDeploy[i].RemoveInstance(ghost.InstanceId)
 	}
 
-	o.R.log("InstanceMerge.roundFirst 2,machines=%d,deployed=%d,free=%d,"+
-		"moveAlready=%d,moveSuccess=%d,moveTemp=%d，moveFreezing＝%d,moveKeep=%d,moveOther=%d,moveRest=%d\n",
+	o.R.log("InstanceMerge.roundFirst 1,machines=%d,deployed=%d,free=%d,"+
+		"moveAlready=%d,moveSuccess=%d,moveTemp=%d，moveFreezing＝%d,moveRest=%d\n",
 		len(o.MachineList), len(o.DeployedMachineList), len(o.FreeMachineList),
-		moveAlready, moveSuccess, moveTemp, moveFreezing, moveKeep, moveOther, moveRest)
+		moveAlready, moveSuccess, moveTemp, moveFreezing, moveRest)
 }
 
 func (o *InstanceMerge) roundSecond() {

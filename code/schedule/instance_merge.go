@@ -50,7 +50,7 @@ func (o *InstanceMerge) init() {
 		o.DeployMap[instance.InstanceId] = m
 	}
 
-	//交换机器，固定住大的实例
+	//同配置机器重新映射，将大的实例的初始机器直接映射到目标机器上，避免移动
 	if o.R.Dataset == "e" { //其他几个数据集估计不需要，这里如果放开，外面需要处理交换的机器
 		o.fixMachines()
 	}
@@ -165,10 +165,10 @@ func (o *InstanceMerge) roundFirst() {
 	moveTemp := 0
 	moveRest := 0
 	moveFreezing := 0
-	for i, instance := range o.InstanceList {
-		if i > 0 && i%10000 == 0 {
-			o.R.log("InstanceMerge.roundFirst 1 %d\n", i)
-		}
+	for _, instance := range o.InstanceList {
+		//if i > 0 && i%10000 == 0 {
+		//	o.R.log("InstanceMerge.roundFirst 1 %d\n", i)
+		//}
 
 		currentMachine := o.DeployMap[instance.InstanceId]
 		targetMachineId := o.FinalDeployMap[instance.InstanceId]
@@ -233,116 +233,6 @@ func (o *InstanceMerge) roundFirst() {
 					break
 				}
 			}
-			if !moved { //todo
-				moveRest++
-			}
-		}
-	}
-
-	o.R.log("InstanceMerge.roundFirst 1,machines=%d,deployed=%d,free=%d,"+
-		"moveAlready=%d,moveSuccess=%d,moveTemp=%d，moveFreezing＝%d,moveRest=%d\n",
-		len(o.MachineList), len(o.DeployedMachineList), len(o.FreeMachineList),
-		moveAlready, moveSuccess, moveTemp, moveFreezing, moveRest)
-
-	//根据第二轮状态尝试将影响下轮回放的实例移开
-	nextMachineMap := make([]*Machine, o.R.MaxMachineId+1)
-	for i, m := range o.MachineMap {
-		if m != nil {
-			nextMachineMap[i] = NewMachine(m.R, m.MachineId, m.Config)
-		}
-	}
-	for instanceId, machineId := range o.FinalDeployMap {
-		if machineId > 0 {
-			//排除掉在临时机器中的实例
-			currentMachine := o.DeployMap[instanceId]
-			if o.FreeMachineMap[currentMachine.MachineId] != nil {
-				//continue#注释掉这里限制下轮的移动，避免第一轮过度移动
-			}
-
-			nextMachineMap[machineId].AddInstance(o.InstanceMap[instanceId])
-		}
-	}
-
-	moveAlready = 0
-	moveFreezing = 0
-	moveKeep := 0
-	moveOther := 0
-	moveRest = 0
-	lastFitPos := 0
-	for i, instance := range o.InstanceList {
-		if i > 0 && i%10000 == 0 {
-			o.R.log("InstanceMerge.roundFirst 2 %d\n", i)
-		}
-
-		currentMachine := o.DeployMap[instance.InstanceId]
-		targetMachineId := o.FinalDeployMap[instance.InstanceId]
-
-		//已经部署，直接跳过
-		if currentMachine.MachineId == targetMachineId {
-			moveAlready++
-			continue
-		}
-
-		//在临时机器中，本轮不移动
-		if o.FreeMachineMap[currentMachine.MachineId] != nil {
-			moveFreezing++
-			continue
-		}
-
-		//若不可保持位置，迁移走
-		nextCurrentMachine := nextMachineMap[currentMachine.MachineId]
-		if nextCurrentMachine.ConstraintCheck(instance, 1) {
-			//可以保持位置
-			nextCurrentMachine.AddInstance(instance)
-			moveKeep++
-		} else {
-			//迁移走
-			moved := false
-			for fitOffset := 1; fitOffset <= len(o.DeployedMachineList); fitOffset++ {
-				pos := lastFitPos + fitOffset
-				if pos == len(o.DeployedMachineList) {
-					pos = 0
-				}
-
-				deployMachine := o.DeployedMachineList[pos]
-				if deployMachine == currentMachine {
-					continue
-				}
-
-				if !deployMachine.ConstraintCheck(instance, 1) {
-					continue
-				}
-
-				nextDeployMachine := nextMachineMap[deployMachine.MachineId]
-				if !nextDeployMachine.ConstraintCheck(instance, 1) {
-					continue
-				}
-
-				//迁移实例
-				currentMachine.RemoveInstance(instance.InstanceId)
-				deployMachine.AddInstance(instance)
-				o.DeployMap[instance.InstanceId] = deployMachine
-
-				//更新最终状态
-				nextDeployMachine.AddInstance(instance)
-
-				//留下幽灵
-				ghost := instance.CreateGhost()
-				currentMachine.AddInstance(ghost)
-				ghosts = append(ghosts, ghost)
-				ghostsDeploy = append(ghostsDeploy, currentMachine)
-
-				//纪录指令
-				o.MoveCommands = append(o.MoveCommands, &InstanceMoveCommand{
-					Round:      1,
-					InstanceId: instance.InstanceId,
-					MachineId:  deployMachine.MachineId,
-				})
-
-				moveOther++
-				moved = true
-				break
-			}
 			if !moved {
 				moveRest++
 			}
@@ -354,10 +244,10 @@ func (o *InstanceMerge) roundFirst() {
 		ghostsDeploy[i].RemoveInstance(ghost.InstanceId)
 	}
 
-	o.R.log("InstanceMerge.roundFirst 2,machines=%d,deployed=%d,free=%d,"+
-		"moveAlready=%d,moveSuccess=%d,moveTemp=%d，moveFreezing＝%d,moveKeep=%d,moveOther=%d,moveRest=%d\n",
+	o.R.log("InstanceMerge.roundFirst 1,machines=%d,deployed=%d,free=%d,"+
+		"moveAlready=%d,moveSuccess=%d,moveTemp=%d，moveFreezing＝%d,moveRest=%d\n",
 		len(o.MachineList), len(o.DeployedMachineList), len(o.FreeMachineList),
-		moveAlready, moveSuccess, moveTemp, moveFreezing, moveKeep, moveOther, moveRest)
+		moveAlready, moveSuccess, moveTemp, moveFreezing, moveRest)
 }
 
 func (o *InstanceMerge) roundSecond() {
@@ -374,10 +264,10 @@ func (o *InstanceMerge) roundSecond() {
 	moveFreezing := 0
 	moveSuccess := 0
 	moveRest := 0
-	for i, instance := range o.InstanceList {
-		if i > 0 && i%10000 == 0 {
-			o.R.log("InstanceMerge.roundSecond 1 %d\n", i)
-		}
+	for _, instance := range o.InstanceList {
+		//if i > 0 && i%10000 == 0 {
+		//	o.R.log("InstanceMerge.roundSecond 1 %d\n", i)
+		//}
 
 		currentMachine := o.DeployMap[instance.InstanceId]
 		targetMachineId := o.FinalDeployMap[instance.InstanceId]
@@ -444,10 +334,12 @@ func (o *InstanceMerge) roundSecond() {
 	moveKeep := 0
 	moveOther := 0
 	moveRest = 0
-	for i, instance := range o.InstanceList {
-		if i > 0 && i%10000 == 0 {
-			o.R.log("InstanceMerge.roundSecond 2 %d\n", i)
-		}
+	currentMachineIndex := -1
+	machineCount := len(o.DeployedMachineList)
+	for _, instance := range o.InstanceList {
+		//if i > 0 && i%10000 == 0 {
+		//	o.R.log("InstanceMerge.roundSecond 2 %d\n", i)
+		//}
 
 		currentMachine := o.DeployMap[instance.InstanceId]
 		targetMachineId := o.FinalDeployMap[instance.InstanceId]
@@ -473,7 +365,16 @@ func (o *InstanceMerge) roundSecond() {
 		} else {
 			//迁移走
 			moved := false
-			for _, deployMachine := range o.DeployedMachineList {
+			for machineIndex := currentMachineIndex + 1; ; machineIndex++ {
+				if machineIndex == machineCount {
+					machineIndex = 0
+				}
+
+				if machineIndex == currentMachineIndex {
+					break
+				}
+
+				deployMachine := o.DeployedMachineList[machineIndex]
 				if deployMachine == currentMachine {
 					continue
 				}
@@ -508,6 +409,9 @@ func (o *InstanceMerge) roundSecond() {
 					MachineId:  deployMachine.MachineId,
 				})
 
+				//更新NextFit位置
+				currentMachineIndex = machineIndex
+
 				moveOther++
 				moved = true
 				break
@@ -539,10 +443,10 @@ func (o *InstanceMerge) roundFinal() (err error) {
 	moveAlready := 0
 	moveSuccess := 0
 	moveRest := 0
-	for i, instance := range o.InstanceList {
-		if i > 0 && i%10000 == 0 {
-			o.R.log("InstanceMerge.roundFinal %d\n", i)
-		}
+	for _, instance := range o.InstanceList {
+		//if i > 0 && i%10000 == 0 {
+		//	o.R.log("InstanceMerge.roundFinal %d\n", i)
+		//}
 
 		currentMachine := o.DeployMap[instance.InstanceId]
 		targetMachineId := o.FinalDeployMap[instance.InstanceId]
@@ -598,12 +502,20 @@ func (o *InstanceMerge) roundFinal() (err error) {
 func (o *InstanceMerge) Run() (moveCommands []*InstanceMoveCommand, err error) {
 	o.R.log("InstanceMerge.Run\n")
 
+	//算法步骤：同配置机器重新映射，将大的实例的初始机器直接映射到目标机器上，避免移动
 	o.init()
 
+	//算法步骤：第一轮移动当中，对每个不能直接移动到目标机器的实例且没有迁移到空闲机器的实例，
+	//如果下一轮可以移动到目标机器，保持当前位置不变，并且占住下一轮的目标位置的坑以及下一轮当前位置的坑。
+	//然后再重新考虑所有剩下的实例，下一轮如果按照最终状态，该实例保持不动是否会引起冲突，
+	//如果冲突就尝试将其移走，移动的目标机器要同时满足本轮和下一轮的约束
 	o.roundFirst()
 
+	//算法步骤：第二轮移动当中对每个不能直接移到目标机器的实例，下一轮如果按照最终状态，该实例保持不动是否会引起冲突，
+	//如果冲突就尝试将其移走，移动的目标机器要同时满足本轮和下一轮的约束
 	o.roundSecond()
 
+	//算法步骤：第三轮能做的只有将剩下的实例都部署到目标机器上
 	err = o.roundFinal()
 	if err != nil {
 		return nil, err

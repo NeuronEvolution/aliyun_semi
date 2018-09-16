@@ -43,6 +43,7 @@ type ResourceManagement struct {
 	JobMergeRound             int
 	InstanceScheduleStartTime time.Time
 	InstanceMergeStartTime    time.Time
+	InstanceTotalLoop         int
 }
 
 func NewResourceManagement(
@@ -339,6 +340,7 @@ func (r *ResourceManagement) Run() (err error) {
 		}
 
 		//输出结果
+		r.InstanceTotalLoop = r.GetDatasetInstanceLoop()
 		return r.output(machines, instanceMoveCommands, jobDeployCommands)
 	})
 }
