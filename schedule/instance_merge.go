@@ -50,7 +50,7 @@ func (o *InstanceMerge) init() {
 		o.DeployMap[instance.InstanceId] = m
 	}
 
-	//交换机器，固定住大的实例
+	//同配置机器重新映射，将大的实例的初始机器直接映射到目标机器上，避免移动
 	if o.R.Dataset == "e" { //其他几个数据集估计不需要，这里如果放开，外面需要处理交换的机器
 		o.fixMachines()
 	}
@@ -621,12 +621,20 @@ func (o *InstanceMerge) roundFinal() (err error) {
 func (o *InstanceMerge) Run() (moveCommands []*InstanceMoveCommand, err error) {
 	o.R.log("InstanceMerge.Run\n")
 
+	//算法步骤：同配置机器重新映射，将大的实例的初始机器直接映射到目标机器上，避免移动
 	o.init()
 
+	//算法步骤：第一轮移动当中，对每个不能直接移动到目标机器的实例且没有迁移到空闲机器的实例，
+	//如果下一轮可以移动到目标机器，保持当前位置不变，并且占住下一轮的目标位置的坑以及下一轮当前位置的坑。
+	//然后再重新考虑所有剩下的实例，下一轮如果按照最终状态，该实例保持不动是否会引起冲突，
+	//如果冲突就尝试将其移走，移动的目标机器要同时满足本轮和下一轮的约束
 	o.roundFirst()
 
+	//算法步骤：第二轮移动当中对每个不能直接移到目标机器的实例，下一轮如果按照最终状态，该实例保持不动是否会引起冲突，
+	//如果冲突就尝试将其移走，移动的目标机器要同时满足本轮和下一轮的约束
 	o.roundSecond()
 
+	//算法步骤：第三轮能做的只有将剩下的实例都部署到目标机器上
 	err = o.roundFinal()
 	if err != nil {
 		return nil, err
