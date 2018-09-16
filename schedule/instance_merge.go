@@ -268,7 +268,8 @@ func (o *InstanceMerge) roundFirst() {
 	moveKeep := 0
 	moveOther := 0
 	moveRest = 0
-	lastFitPos := 0
+	machineCount := len(o.DeployedMachineList)
+	currentMachineIndex := 0 //next fit pos
 	for _, instance := range o.InstanceList {
 		//if i > 0 && i%10000 == 0 {
 		//	o.R.log("InstanceMerge.roundFirst 2 %d\n", i)
@@ -298,13 +299,16 @@ func (o *InstanceMerge) roundFirst() {
 		} else {
 			//迁移走
 			moved := false
-			for fitOffset := 1; fitOffset <= len(o.DeployedMachineList); fitOffset++ {
-				pos := lastFitPos + fitOffset
-				if pos == len(o.DeployedMachineList) {
-					pos = 0
+			for machineIndex := currentMachineIndex + 1; ; machineIndex++ {
+				if machineIndex == machineCount {
+					machineIndex = 0
 				}
 
-				deployMachine := o.DeployedMachineList[pos]
+				if machineIndex == currentMachineIndex {
+					break
+				}
+
+				deployMachine := o.DeployedMachineList[machineIndex]
 				if deployMachine == currentMachine {
 					continue
 				}
@@ -317,6 +321,8 @@ func (o *InstanceMerge) roundFirst() {
 				if !nextDeployMachine.ConstraintCheck(instance, 1) {
 					continue
 				}
+
+				//todo 这里应该
 
 				//迁移实例
 				currentMachine.RemoveInstance(instance.InstanceId)
@@ -338,6 +344,9 @@ func (o *InstanceMerge) roundFirst() {
 					InstanceId: instance.InstanceId,
 					MachineId:  deployMachine.MachineId,
 				})
+
+				//更新NextFit位置
+				currentMachineIndex = machineIndex
 
 				moveOther++
 				moved = true
@@ -444,6 +453,8 @@ func (o *InstanceMerge) roundSecond() {
 	moveKeep := 0
 	moveOther := 0
 	moveRest = 0
+	currentMachineIndex := -1
+	machineCount := len(o.DeployedMachineList)
 	for _, instance := range o.InstanceList {
 		//if i > 0 && i%10000 == 0 {
 		//	o.R.log("InstanceMerge.roundSecond 2 %d\n", i)
@@ -473,7 +484,16 @@ func (o *InstanceMerge) roundSecond() {
 		} else {
 			//迁移走
 			moved := false
-			for _, deployMachine := range o.DeployedMachineList {
+			for machineIndex := currentMachineIndex + 1; ; machineIndex++ {
+				if machineIndex == machineCount {
+					machineIndex = 0
+				}
+
+				if machineIndex == currentMachineIndex {
+					break
+				}
+
+				deployMachine := o.DeployedMachineList[machineIndex]
 				if deployMachine == currentMachine {
 					continue
 				}
@@ -507,6 +527,9 @@ func (o *InstanceMerge) roundSecond() {
 					InstanceId: instance.InstanceId,
 					MachineId:  deployMachine.MachineId,
 				})
+
+				//更新NextFit位置
+				currentMachineIndex = machineIndex
 
 				moveOther++
 				moved = true
