@@ -444,9 +444,7 @@ func (r *ResourceManagement) instanceSchedule() (err error) {
 			if !ok {
 				if deadLoop > 16 {
 					r.log("instanceSchedule scale=%2d dead loop=%8d,totalLoop=%8d\n", scaleCount, deadLoop, totalLoop)
-					if deadLoop > 32 {
-						return nil
-					}
+					return nil
 				}
 				deadLoop++
 				continue
